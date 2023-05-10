@@ -21,23 +21,26 @@
     "dist/"
   ],
   "scripts": {
+    "start": "nodemon src/index.ts",
     "build": "npm run clean && npm run lint && tsc",
     "changelog": "conventional-changelog -p angular -u",
     "changelog:update": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md",
-    "clean": "(rm -r ./.nyc_output || true) && (rm -r ./coverage || true) && (rm -r ./dist || true)",
+    "clean": "(rm -r ./dist || true)",
     "clean:all": "npm run clean && (rm -r ./node_modules || true)",
-    "lint": "eslint --ext .ts --fix src/**/*.ts test/**/*.ts",
+    "lint": "eslint --ext .ts --fix src/**/*.ts",
     "postversion": "git push && git push --tags",
     "prepare": "npm run build",
     "version": "npm run build && npm run changelog:update"
   },
   "devDependencies": {
+    "@types/midi": "^2.0.0",
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "conventional-changelog-cli": "^2.2.2",
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^8.35.0",
+    "nodemon": "^2.0.22",
     "source-map-support": "^0.5.21",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.2"
@@ -49,6 +52,7 @@
   },
   "dependencies": {
     "ableton-js": "^3.1.8",
+    "midi": "^2.0.0",
     "sitka": "^1.0.6"
   }
 }
