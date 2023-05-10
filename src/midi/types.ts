@@ -1,5 +1,10 @@
-export type MIDIFilter = {
-  target?: number;
+export type MIDINoteFilter = {
+  note?: number;
+  channel?: number;
+};
+
+export type MIDIControlFilter = {
+  control?: number;
   channel?: number;
 };
 

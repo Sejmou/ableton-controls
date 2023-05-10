@@ -3,6 +3,8 @@ import {
   ControlChangeMessage,
   NoteMessage,
   TransportClockMessage,
+  MIDINoteFilter,
+  MIDIControlFilter,
 } from './types';
 
 type MIDIMessageListeners = {
@@ -33,20 +35,75 @@ export class MIDIInput {
     controlChange: {},
   };
 
-  public addListener(
-    type: 'noteOn' | 'noteOff' | 'controlChange',
-    callback: (message: NoteMessage | ControlChangeMessage) => void
+  public addNoteOnListener(
+    callback: (message: NoteMessage) => void,
+    filter?: MIDINoteFilter
   ) {
     const id = Math.random().toString();
-    this.listeners[type][id] = callback;
+    this.listeners.noteOn[id] = message => {
+      if (filter) {
+        if (filter.note !== undefined && filter.note != message.note) {
+          return;
+        }
+        if (filter.channel !== undefined && filter.channel != message.channel) {
+          return;
+        }
+      }
+      callback(message);
+    };
     return id;
   }
 
-  public removeListener(
-    type: 'noteOn' | 'noteOff' | 'controlChange',
-    id: string
+  public addNoteOffListener(
+    callback: (message: NoteMessage) => void,
+    filter?: MIDINoteFilter
   ) {
-    delete this.listeners[type][id];
+    const id = Math.random().toString();
+    this.listeners.noteOff[id] = message => {
+      if (filter) {
+        if (filter.note !== undefined && filter.note != message.note) {
+          return;
+        }
+        if (filter.channel !== undefined && filter.channel != message.channel) {
+          return;
+        }
+      }
+      callback(message);
+    };
+    return id;
+  }
+
+  public addControlChangeListener(
+    callback: (message: ControlChangeMessage) => void,
+    filter?: MIDIControlFilter
+  ) {
+    const id = Math.random().toString();
+    this.listeners.controlChange[id] = message => {
+      if (filter) {
+        if (filter.control !== undefined && filter.control != message.control) {
+          return;
+        }
+        if (filter.channel !== undefined && filter.channel != message.channel) {
+          return;
+        }
+      }
+      callback(message);
+    };
+    return id;
+  }
+
+  public removeListener(id: string) {
+    if (this.listeners.noteOn[id]) {
+      delete this.listeners.noteOn[id];
+    } else if (this.listeners.noteOff[id]) {
+      delete this.listeners.noteOff[id];
+    } else if (this.listeners.controlChange[id]) {
+      delete this.listeners.controlChange[id];
+    } else {
+      console.warn(
+        `Could not remove MIDI input lister: No listener with id ${id} found`
+      );
+    }
   }
 
   private handleNoteOn(message: NoteMessage) {
