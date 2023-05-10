@@ -1,22 +1,22 @@
-'use strict';
+import { Ableton } from 'ableton-js';
 
-import { Logger } from 'sitka';
+// Log all messages to the console
+const ableton = new Ableton({ logger: console });
 
-export class Example {
-	/* Private Instance Fields */
+const test = async () => {
+  // Establishes a connection with Live
+  await ableton.start();
 
-	private _logger: Logger;
+  // Observe the current playback state and tempo
+  ableton.song.addListener('is_playing', p => console.log('Playing:', p));
+  ableton.song.addListener('tempo', t => console.log('Tempo:', t));
 
-	/* Constructor */
+  // Get the current tempo
+  const tempo = await ableton.song.get('tempo');
+  console.log('Current tempo:', tempo);
 
-	constructor() {
-		this._logger = Logger.getLogger({ name: this.constructor.name });
-	}
+  // Set the tempo
+  await ableton.song.set('tempo', 85);
+};
 
-	/* Public Instance Methods */
-
-	public exampleMethod(param: string): string {
-		this._logger.debug('Received: ' + param);
-		return param;
-	}
-}
+test();
