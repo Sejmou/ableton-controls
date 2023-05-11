@@ -13,19 +13,34 @@ type MIDIMessageListeners = {
   controlChange: { [id: string]: (message: ControlChangeMessage) => void };
 };
 
-export class MIDIInput {
+export class MIDIInputHandler {
   private input: Input;
 
-  constructor() {
+  constructor(portName: string) {
     this.input = new Input();
-    const portCount = this.input.getPortCount();
-    if (portCount == 0) {
+    const ports = this.ports;
+    if (ports.length == 0) {
       throw new Error('No MIDI input ports found');
     }
+    console.log('available MIDI input ports:', ports);
     this.input.on('message', (deltaTime, message) => {
       this.handleMIDIMessage(message);
     }); // important to bind this, otherwise this will be undefined when calling handleMIDIMessage
-    this.input.openPort(0);
+    const targetPortIdx = ports.findIndex(port =>
+      port.toLowerCase().includes(portName.toLowerCase())
+    );
+    if (targetPortIdx == -1) {
+      throw new Error(`No port for port name '${portName}' not found`);
+    }
+    console.log(
+      `opening and listening on MIDI input port '${ports[targetPortIdx]}'`
+    );
+    this.input.openPort(targetPortIdx);
+  }
+
+  private get ports() {
+    const portCount = this.input.getPortCount();
+    return [...Array(portCount).keys()].map(i => this.input.getPortName(i));
   }
 
   // TODO: it is not particularly clean to allow changing this from outside the class
