@@ -51,7 +51,17 @@ export async function createSongAndSection$(ableton: Ableton) {
     map(([songMarkers, time]) => getCurrentSongAndSection(songMarkers, time))
   );
 
-  return currentSongAndSection$;
+  const currentSong$ = currentSongAndSection$.pipe(
+    map(({ currentSong }) => currentSong),
+    distinctUntilChanged()
+  );
+
+  const currentSection$ = currentSongAndSection$.pipe(
+    map(({ currentSection }) => currentSection),
+    distinctUntilChanged()
+  );
+
+  return { currentSong$, currentSection$ };
 }
 
 type Locator = {

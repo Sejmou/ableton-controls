@@ -1,21 +1,19 @@
-import { BehaviorSubject } from 'rxjs';
+import { Observable } from 'rxjs';
 import { MIDIInputHandler } from './midi';
 import { Track } from 'ableton-js/ns/track';
 
 type Config = {
   midiInputPortName: string;
-  tracks$: BehaviorSubject<Track[]>;
+  tracks$: Observable<Track[]>;
 };
 
 export class TrackManager {
-  private tracks$: BehaviorSubject<Track[]>;
-
-  private get tracks() {
-    return this.tracks$.value;
-  }
+  private tracks: Track[] = [];
 
   constructor(config: Config) {
-    this.tracks$ = config.tracks$;
+    config.tracks$.subscribe(tracks => {
+      this.tracks = tracks;
+    });
     const midiInputPortName = config.midiInputPortName;
 
     this.input = new MIDIInputHandler(midiInputPortName);
