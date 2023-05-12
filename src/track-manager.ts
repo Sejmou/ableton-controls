@@ -1,12 +1,24 @@
-import { Ableton } from 'ableton-js';
+import { BehaviorSubject } from 'rxjs';
 import { MIDIInputHandler } from './midi';
+import { Track } from 'ableton-js/ns/track';
+
+type Config = {
+  midiInputPortName: string;
+  tracks$: BehaviorSubject<Track[]>;
+};
 
 export class TrackManager {
-  private input: MIDIInputHandler;
+  private tracks$: BehaviorSubject<Track[]>;
 
-  constructor(private ableton: Ableton) {
-    this.ableton = ableton;
-    this.input = new MIDIInputHandler('BT500S');
+  private get tracks() {
+    return this.tracks$.value;
+  }
+
+  constructor(config: Config) {
+    this.tracks$ = config.tracks$;
+    const midiInputPortName = config.midiInputPortName;
+
+    this.input = new MIDIInputHandler(midiInputPortName);
     this.input.addNoteOnListener(
       () => {
         this.armNextTrack();
@@ -28,18 +40,24 @@ export class TrackManager {
     );
   }
 
-  private get tracks() {
-    return async () => this.ableton.song.get('tracks');
-  }
+  private input: MIDIInputHandler;
+  private armedTrackName?: string;
 
   private get armedTrackData() {
     return async () => {
-      const tracks = await this.tracks();
+      const tracks = this.tracks;
       const armedTrackIdx = await findIndexAsync(tracks, track =>
         track.get('arm')
       );
       const armedTrack =
         armedTrackIdx !== -1 ? tracks[armedTrackIdx] : undefined;
+
+      const trackName = await armedTrack?.get('name');
+      if (this.armedTrackName !== trackName) {
+        console.log('armed track:', await armedTrack?.get('name'));
+        this.armedTrackName = trackName;
+      }
+
       const isFirst = armedTrackIdx == 0;
       const isLast = armedTrackIdx == tracks.length - 1;
       return {

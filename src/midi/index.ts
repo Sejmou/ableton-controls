@@ -13,6 +13,7 @@ type MIDIMessageListeners = {
   controlChange: { [id: string]: (message: ControlChangeMessage) => void };
 };
 
+// TODO: refactor to also use RxJS instead of event listeners
 export class MIDIInputHandler {
   private input: Input;
 
