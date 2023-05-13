@@ -1,7 +1,6 @@
 import { Track } from 'ableton-js/ns/track';
 
 export async function armNextTrack(data: ArmedTrackData) {
-  console.log('armNextTrack');
   const { armedTrack, nextTrack } = data;
   if (!armedTrack) {
     console.warn('no armed track found');

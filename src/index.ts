@@ -107,6 +107,13 @@ const main = async () => {
         armedTracks.armedTrack?.set('arm', false);
       }
     });
+
+  // play/pause
+  const playPause$ = noteOn$.pipe(filter(m => m.channel == 2 && m.note == 2));
+  playPause$.subscribe(async () => {
+    const playing = await ableton.song.get('is_playing');
+    ableton.song.set('is_playing', !playing);
+  });
 };
 
 main();
