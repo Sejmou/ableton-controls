@@ -1,193 +1,79 @@
 import { Input, MidiMessage } from 'midi';
-import {
-  ControlChangeMessage,
-  NoteMessage,
-  TransportClockMessage,
-  MIDINoteFilter,
-  MIDIControlFilter,
-} from './types';
+import { ControlChangeMessage, NoteMessage } from './types';
+import { Observable, filter, map } from 'rxjs';
 
-type MIDIMessageListeners = {
-  noteOn: { [id: string]: (message: NoteMessage) => void };
-  noteOff: { [id: string]: (message: NoteMessage) => void };
-  controlChange: { [id: string]: (message: ControlChangeMessage) => void };
-};
-
-// TODO: refactor to also use RxJS instead of event listeners
-export class MIDIInputHandler {
-  private input: Input;
-
-  constructor(portName: string) {
-    this.input = new Input();
-    const ports = this.ports;
-    if (ports.length == 0) {
-      throw new Error('No MIDI input ports found');
-    }
-    console.log('available MIDI input ports:', ports);
-    this.input.on('message', (deltaTime, message) => {
-      this.handleMIDIMessage(message);
-    }); // important to bind this, otherwise this will be undefined when calling handleMIDIMessage
-    const targetPortIdx = ports.findIndex(port =>
-      port.toLowerCase().includes(portName.toLowerCase())
-    );
-    if (targetPortIdx == -1) {
-      throw new Error(`No port for port name '${portName}' not found`);
-    }
-    console.log(
-      `opening and listening on MIDI input port '${ports[targetPortIdx]}'`
-    );
-    this.input.openPort(targetPortIdx);
+export async function createMidiInputStream$(portName: string) {
+  const input = new Input();
+  const ports = getPorts(input);
+  if (ports.length == 0) {
+    throw new Error('No MIDI input ports found');
   }
 
-  private get ports() {
-    const portCount = this.input.getPortCount();
-    return [...Array(portCount).keys()].map(i => this.input.getPortName(i));
+  const targetPortIdx = ports.findIndex(port =>
+    port.toLowerCase().includes(portName.toLowerCase())
+  );
+  if (targetPortIdx == -1) {
+    throw new Error(`No port for port name '${portName}' not found`);
   }
+  console.log(
+    `opening and listening on MIDI input port '${ports[targetPortIdx]}'`
+  );
+  input.openPort(targetPortIdx);
+  const midiMessageData$ = new Observable<MIDIMessageData>(subscriber => {
+    input.on('message', (deltaTime, message) => {
+      subscriber.next(extractData(message));
+    });
+  });
 
-  // TODO: it is not particularly clean to allow changing this from outside the class
-  private listeners: MIDIMessageListeners = {
-    noteOn: {},
-    noteOff: {},
-    controlChange: {},
-  };
+  const noteOn$: Observable<NoteMessage> = midiMessageData$.pipe(
+    filter(({ actionName }) => actionName == 'note on'),
+    map(({ data, channel }) => ({
+      note: data[1],
+      velocity: data[2],
+      channel,
+    }))
+  );
 
-  public addNoteOnListener(
-    callback: (message: NoteMessage) => void,
-    filter?: MIDINoteFilter
-  ) {
-    const id = Math.random().toString();
-    this.listeners.noteOn[id] = message => {
-      if (filter) {
-        if (filter.note !== undefined && filter.note != message.note) {
-          return;
-        }
-        if (filter.channel !== undefined && filter.channel != message.channel) {
-          return;
-        }
-      }
-      callback(message);
-    };
-    return id;
-  }
+  const noteOff$: Observable<NoteMessage> = midiMessageData$.pipe(
+    filter(({ actionName }) => actionName == 'note off'),
+    map(({ data, channel }) => ({
+      note: data[1],
+      velocity: data[2],
+      channel,
+    }))
+  );
 
-  public addNoteOffListener(
-    callback: (message: NoteMessage) => void,
-    filter?: MIDINoteFilter
-  ) {
-    const id = Math.random().toString();
-    this.listeners.noteOff[id] = message => {
-      if (filter) {
-        if (filter.note !== undefined && filter.note != message.note) {
-          return;
-        }
-        if (filter.channel !== undefined && filter.channel != message.channel) {
-          return;
-        }
-      }
-      callback(message);
-    };
-    return id;
-  }
-
-  public addControlChangeListener(
-    callback: (message: ControlChangeMessage) => void,
-    filter?: MIDIControlFilter
-  ) {
-    const id = Math.random().toString();
-    this.listeners.controlChange[id] = message => {
-      if (filter) {
-        if (filter.control !== undefined && filter.control != message.control) {
-          return;
-        }
-        if (filter.channel !== undefined && filter.channel != message.channel) {
-          return;
-        }
-      }
-      callback(message);
-    };
-    return id;
-  }
-
-  public removeListener(id: string) {
-    if (this.listeners.noteOn[id]) {
-      delete this.listeners.noteOn[id];
-    } else if (this.listeners.noteOff[id]) {
-      delete this.listeners.noteOff[id];
-    } else if (this.listeners.controlChange[id]) {
-      delete this.listeners.controlChange[id];
-    } else {
-      console.warn(
-        `Could not remove MIDI input lister: No listener with id ${id} found`
-      );
-    }
-  }
-
-  private handleNoteOn(message: NoteMessage) {
-    for (const key in this.listeners.noteOn) {
-      this.listeners.noteOn[key](message);
-    }
-  }
-
-  private handleNoteOff(message: NoteMessage) {
-    for (const key in this.listeners.noteOff) {
-      this.listeners.noteOff[key](message);
-    }
-  }
-
-  private handleControlChange(message: ControlChangeMessage) {
-    for (const key in this.listeners.controlChange) {
-      this.listeners.controlChange[key](message);
-    }
-  }
-
-  private handleTransportClockMessage(message: TransportClockMessage) {
-    console.warn(
-      'transport/clock message handling not implemented yet; message:',
-      message
-    );
-  }
-
-  private handleMIDIMessage(message: MidiMessage) {
-    const { actionName, channel, data } = extractData(message);
-
-    if (actionName == 'control change') {
-      const message: ControlChangeMessage = {
+  const controlChange$: Observable<ControlChangeMessage> =
+    midiMessageData$.pipe(
+      filter(({ actionName }) => actionName == 'control change'),
+      map(({ data, channel }) => ({
         control: data[1],
         value: data[2],
         channel,
-      };
-      this.handleControlChange(message);
-    } else if (actionName == 'transport/clock') {
-      const message: TransportClockMessage = {
-        type: data[0],
-      };
-      this.handleTransportClockMessage(message);
-    } else if (actionName == 'unknown') {
-      console.log(
-        'cannot handle MIDI message, unknown action type, orignal MIDIMessageEvent:',
-        message
-      );
-    } else {
-      const message: NoteMessage = {
-        note: data[1],
-        velocity: data[2],
-        channel,
-      };
-      if (actionName == 'note on') {
-        this.handleNoteOn(message);
-      } else if (actionName == 'note off') {
-        this.handleNoteOff(message);
-      }
-    }
-  }
+      }))
+    );
+
+  return {
+    midiMessageData$,
+    noteOn$,
+    noteOff$,
+    controlChange$,
+  };
 }
 
-function extractData(message: MidiMessage): {
+function getPorts(input: Input) {
+  const portCount = input.getPortCount();
+  return [...Array(portCount).keys()].map(i => input.getPortName(i));
+}
+
+type MIDIMessageData = {
   actionName: ActionNames;
   leastSig: number;
   channel: number;
   data: number[];
-} {
+};
+
+function extractData(message: MidiMessage): MIDIMessageData {
   const action = message[0] & 0xf0; // Mask channel/least significant bits;
   const actionName = getActionName(action);
 

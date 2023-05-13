@@ -3,9 +3,24 @@ import { Track } from 'ableton-js/ns/track';
 import { BehaviorSubject, forkJoin, map, mergeMap } from 'rxjs';
 
 export async function createTracksAndTrackGroups$(ableton: Ableton) {
-  const tracks$ = new BehaviorSubject(await ableton.song.get('tracks'));
+  const initialTracks = await ableton.song.get('tracks');
+  for (const track of initialTracks) {
+    const canBeArmed = await track.get('can_be_armed');
+    if (!canBeArmed) continue;
+    track.addListener('arm', async () => {
+      tracks$.next(await ableton.song.get('tracks'));
+    });
+  }
+  const tracks$ = new BehaviorSubject(initialTracks);
   ableton.song.addListener('tracks', async tracks => {
     tracks$.next(tracks);
+    for (const track of tracks) {
+      const canBeArmed = await track.get('can_be_armed');
+      if (!canBeArmed) continue;
+      track.addListener('arm', async () => {
+        tracks$.next(await ableton.song.get('tracks'));
+      });
+    }
   });
 
   const trackData$ = tracks$.pipe(
