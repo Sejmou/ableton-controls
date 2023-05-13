@@ -1,6 +1,7 @@
 import { Track } from 'ableton-js/ns/track';
 
 export async function armNextTrack(data: ArmedTrackData) {
+  console.log('armNextTrack');
   const { armedTrack, nextTrack } = data;
   if (!armedTrack) {
     console.warn('no armed track found');
@@ -15,6 +16,8 @@ export async function armNextTrack(data: ArmedTrackData) {
     console.warn('failed to arm next track');
     return;
   }
+  const trackName = await nextTrack.get('name');
+  console.log(`armed track: ${trackName}`);
   await armedTrack.set('arm', false);
 }
 
@@ -33,6 +36,8 @@ export async function armPreviousTrack(data: ArmedTrackData) {
     console.warn('failed to arm previous track');
     return;
   }
+  const trackName = await previousTrack.get('name');
+  console.log(`armed track: ${trackName}`);
   await armedTrack.set('arm', false);
 }
 

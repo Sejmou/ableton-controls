@@ -7,7 +7,15 @@ import {
 import { createSongAndSection$ } from './reactive-state/songs-and-sections';
 import { createTracksAndTrackGroups$ } from './reactive-state/tracks';
 import { createMidiInputStream$ } from './midi';
-import { combineLatest, filter, mergeMap, withLatestFrom } from 'rxjs';
+import {
+  combineLatest,
+  filter,
+  mergeMap,
+  throttleTime,
+  withLatestFrom,
+  buffer,
+  debounceTime,
+} from 'rxjs';
 
 // Log all messages to the console
 const ableton = new Ableton({ logger: console });
@@ -75,43 +83,29 @@ const main = async () => {
 
   const armedTracks$ = tracksForCurrentSong$.pipe(mergeMap(getArmedTrackData));
 
-  noteOn$
-    .pipe(
-      filter(m => m.channel == 1 && m.note == 3),
-      withLatestFrom(armedTracks$)
-    )
-    .subscribe(([_, tracks]) => {
-      armNextTrack(tracks);
-    });
-
-  noteOn$
-    .pipe(
-      filter(m => m.channel == 1 && m.note == 2),
-      withLatestFrom(armedTracks$)
-    )
-    .subscribe(([_, tracks]) => {
-      armPreviousTrack(tracks);
+  const trackSwitch$ = noteOn$.pipe(filter(m => m.channel == 1 && m.note == 1));
+  trackSwitch$
+    .pipe(buffer(trackSwitch$.pipe(throttleTime(500), debounceTime(500))))
+    .pipe(withLatestFrom(armedTracks$))
+    .subscribe(async ([messages, tracks]) => {
+      if (messages.length > 1) {
+        await armPreviousTrack(tracks);
+      } else {
+        await armNextTrack(tracks);
+      }
     });
 
   // song switching
-  noteOn$
-    .pipe(
-      filter(m => m.channel == 1 && m.note == 1),
-      withLatestFrom(nextSongLocator$, armedTracks$)
-    )
-    .subscribe(([_, l, armedTracks]) => {
-      if (l) ableton.song.set('current_song_time', l.time);
-      armedTracks.armedTrack?.set('arm', false);
-    });
-
-  noteOn$
-    .pipe(
-      filter(m => m.channel == 1 && m.note == 0),
-      withLatestFrom(previousSongLocator$, armedTracks$)
-    )
-    .subscribe(([_, l, armedTracks]) => {
-      if (l) ableton.song.set('current_song_time', l.time);
-      armedTracks.armedTrack?.set('arm', false);
+  const songSwitch$ = noteOn$.pipe(filter(m => m.channel == 1 && m.note == 0));
+  songSwitch$
+    .pipe(buffer(songSwitch$.pipe(throttleTime(500), debounceTime(500))))
+    .pipe(withLatestFrom(nextSongLocator$, previousSongLocator$, armedTracks$))
+    .subscribe(([messages, next, previous, armedTracks]) => {
+      const locator = messages.length > 1 ? previous : next;
+      if (locator) {
+        ableton.song.set('current_song_time', locator.time);
+        armedTracks.armedTrack?.set('arm', false);
+      }
     });
 };
 

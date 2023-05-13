@@ -1,6 +1,6 @@
 import { Input, MidiMessage } from 'midi';
 import { ControlChangeMessage, NoteMessage } from './types';
-import { Observable, filter, map } from 'rxjs';
+import { Observable, Subject, filter, map } from 'rxjs';
 
 export async function createMidiInputStream$(portName: string) {
   const input = new Input();
@@ -16,13 +16,12 @@ export async function createMidiInputStream$(portName: string) {
     throw new Error(`No port for port name '${portName}' not found`);
   }
   console.log(
-    `opening and listening on MIDI input port '${ports[targetPortIdx]}'`
+    `opened MIDI input port '${ports[targetPortIdx]}', listening for MIDI messages`
   );
   input.openPort(targetPortIdx);
-  const midiMessageData$ = new Observable<MIDIMessageData>(subscriber => {
-    input.on('message', (deltaTime, message) => {
-      subscriber.next(extractData(message));
-    });
+  const midiMessageData$ = new Subject<MIDIMessageData>();
+  input.on('message', (deltaTime, message) => {
+    midiMessageData$.next(extractData(message));
   });
 
   const noteOn$: Observable<NoteMessage> = midiMessageData$.pipe(
