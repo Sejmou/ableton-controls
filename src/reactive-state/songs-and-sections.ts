@@ -26,20 +26,63 @@ export async function createSongAndSection$(ableton: Ableton) {
     time$.next(time);
   });
 
-  const sectionLocators$ = locators$.pipe(
-    map(locators => locators.filter(l => l.type === 'section'))
-  );
-
-  const currentSectionLocator$ = combineLatest([sectionLocators$, time$]).pipe(
-    map(([locators, time]) => getCurrentLocator(locators, time)),
-    distinctUntilChanged((prev, curr) => prev?.name === curr?.name)
-  );
-
   const songLocators$ = locators$.pipe(
     map(locators => locators.filter(l => l.type === 'song-start'))
   );
 
   const currentSongLocator$ = combineLatest([songLocators$, time$]).pipe(
+    map(([locators, time]) => getCurrentLocator(locators, time)),
+    distinctUntilChanged((prev, curr) => prev?.name === curr?.name)
+  );
+
+  const nextSongLocator$ = combineLatest([
+    currentSongLocator$,
+    songLocators$,
+  ]).pipe(
+    map(([currentSongLocator, songLocators]) => {
+      const currentSongIndex = songLocators.findIndex(
+        l => l.name === currentSongLocator?.name
+      );
+      if (currentSongIndex === songLocators.length - 1) {
+        return null;
+      }
+      return songLocators[currentSongIndex + 1];
+    })
+  );
+
+  const previousSongLocator$ = combineLatest([
+    currentSongLocator$,
+    songLocators$,
+  ]).pipe(
+    map(([currentSongLocator, songLocators]) => {
+      const currentSongIndex = songLocators.findIndex(
+        l => l.name === currentSongLocator?.name
+      );
+      if (currentSongIndex === 0) {
+        return null;
+      }
+      return songLocators[currentSongIndex - 1];
+    })
+  );
+
+  // the section locators for the current song
+  const sectionLocators$ = combineLatest([
+    locators$,
+    currentSongLocator$,
+    nextSongLocator$,
+  ]).pipe(
+    map(([locators, currentSongLocator, nextSongLocator]) =>
+      locators.filter(
+        l =>
+          l.type === 'section' &&
+          currentSongLocator &&
+          l.time >= currentSongLocator.time &&
+          (!nextSongLocator || l.time < nextSongLocator.time)
+      )
+    )
+  );
+
+  const currentSectionLocator$ = combineLatest([sectionLocators$, time$]).pipe(
     map(([locators, time]) => getCurrentLocator(locators, time)),
     distinctUntilChanged((prev, curr) => prev?.name === curr?.name)
   );
@@ -71,36 +114,6 @@ export async function createSongAndSection$(ableton: Ableton) {
         return null;
       }
       return sectionLocators[currentSectionIndex - 1];
-    })
-  );
-
-  const nextSongLocator$ = combineLatest([
-    currentSongLocator$,
-    songLocators$,
-  ]).pipe(
-    map(([currentSongLocator, songLocators]) => {
-      const currentSongIndex = songLocators.findIndex(
-        l => l.name === currentSongLocator?.name
-      );
-      if (currentSongIndex === songLocators.length - 1) {
-        return null;
-      }
-      return songLocators[currentSongIndex + 1];
-    })
-  );
-
-  const previousSongLocator$ = combineLatest([
-    currentSongLocator$,
-    songLocators$,
-  ]).pipe(
-    map(([currentSongLocator, songLocators]) => {
-      const currentSongIndex = songLocators.findIndex(
-        l => l.name === currentSongLocator?.name
-      );
-      if (currentSongIndex === 0) {
-        return null;
-      }
-      return songLocators[currentSongIndex - 1];
     })
   );
 
@@ -137,6 +150,7 @@ type Locator = {
   name: string;
   time: number;
   type: 'song-start' | 'section';
+  cuePoint: CuePoint;
 };
 
 async function extractLocatorData(cuePoints: CuePoint[]): Promise<Locator[]> {
@@ -145,7 +159,13 @@ async function extractLocatorData(cuePoints: CuePoint[]): Promise<Locator[]> {
       const name = await pt.get('name');
       const time = await pt.get('time');
       const type = name.startsWith('#') ? 'section' : 'song-start';
-      return { name: type == 'section' ? name.substring(1) : name, time, type };
+      const cuePoint = pt;
+      return {
+        name: type == 'section' ? name.substring(1) : name,
+        time,
+        type,
+        cuePoint,
+      };
     })
   );
 }

@@ -142,7 +142,6 @@ const main = async () => {
       const playing = await ableton.song.get('is_playing');
       const locator =
         playbackOption === 'current song' ? songLocator : sectionLocator;
-      await ableton.song.set('is_playing', !playing);
       if (!playing) {
         if (!locator) {
           console.warn(
@@ -151,8 +150,10 @@ const main = async () => {
           return;
         }
         console.log(`starting playback from '${locator.name}'`);
-        await ableton.song.set('current_song_time', locator.time); // dirty hack to quickly move to locator after starting playback (could have started from anywhere as playhead position determines start time of playback, NOT current song time) - couldn't figure out how to move the playhead with the API
+        await locator.cuePoint.jump();
       }
+
+      await ableton.song.set('is_playing', !playing);
     });
 
   playPause$
