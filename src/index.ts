@@ -28,6 +28,7 @@ const main = async () => {
     currentSection$,
     nextSongLocator$,
     previousSongLocator$,
+    currentSongLocator$,
   } = await createSongAndSection$(ableton);
 
   combineLatest([currentSong$, currentSection$]).subscribe(
@@ -109,11 +110,22 @@ const main = async () => {
     });
 
   // play/pause
+  // customized so that playback always starts at the beginning of the current song
   const playPause$ = noteOn$.pipe(filter(m => m.channel == 2 && m.note == 2));
-  playPause$.subscribe(async () => {
-    const playing = await ableton.song.get('is_playing');
-    ableton.song.set('is_playing', !playing);
-  });
+  playPause$
+    .pipe(withLatestFrom(currentSongLocator$))
+    .subscribe(async ([_, locator]) => {
+      const playing = await ableton.song.get('is_playing');
+      let currentTime = await ableton.song.get('current_song_time');
+      console.log({ playing, currentTime, locatorTime: locator?.time });
+      if (locator && !playing) {
+        while (locator.time < currentTime) {
+          await ableton.song.jumpToPrevCue();
+          currentTime = await ableton.song.get('current_song_time');
+        }
+      }
+      await ableton.song.set('is_playing', !playing);
+    });
 };
 
 main();
