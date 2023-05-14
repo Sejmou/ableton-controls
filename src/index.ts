@@ -48,39 +48,49 @@ const main = async () => {
   // track switching
   const tracksAndTrackGroups$ = await createTracksAndTrackGroups$(ableton);
 
+  const songNameSoundGroupOverride: Record<string, string> = {
+    'Slow Dancing (Live)': 'Slow Dancing',
+    'Slow Dancing (Studio)': 'Slow Dancing',
+  };
+
   const tracksForCurrentSong$ = combineLatest([
     tracksAndTrackGroups$,
     currentSong$,
   ]).pipe(
     mergeMap(async ([tracks, currentSong]) => {
       const soundsGroupName = 'Guitar Sounds'; // TODO: make this configurable
-      const soundsGroup = tracks.find(t => t.name === soundsGroupName);
-      if (!soundsGroup || soundsGroup.type !== 'group') {
+      const soundGroups = tracks.find(t => t.name === soundsGroupName);
+      if (!soundGroups || soundGroups.type !== 'group') {
         console.warn(`Track group '${soundsGroupName}' not found`);
         return [];
       }
-      const soundGroupForCurrentSong = soundsGroup.children.find(
-        t => t.name === currentSong && t.type === 'group'
-      );
-      if (!soundGroupForCurrentSong) {
-        console.warn(
-          `Sounds for current song '${currentSong}' not found, using default sounds`
+      const soundGroupOverride =
+        currentSong && songNameSoundGroupOverride[currentSong];
+      if (soundGroupOverride)
+        console.log(
+          `Using sound group '${soundGroupOverride}' for song '${currentSong}'`
         );
-      }
-      const fallBackSoundGroup = soundsGroup.children.find(
-        t => t.name === 'Default' && t.type === 'group'
-      );
-      if (!fallBackSoundGroup) {
-        console.warn(
-          `Default sounds not found. Make sure to add a track group named 'Default' to the selected track group '${soundsGroupName}'`
-        );
-      }
+      const soundGroupName = soundGroupOverride || currentSong;
 
-      const soundGroup = soundGroupForCurrentSong || fallBackSoundGroup;
+      const songSoundGroup = soundGroups.children.find(
+        t => t.name === soundGroupName && t.type === 'group'
+      );
+
+      const fallbackSoundGroupName = 'Default';
+      if (!songSoundGroup) {
+        console.warn(
+          `Sounds for current song '${currentSong}' not found, using default sounds from '${fallbackSoundGroupName}'`
+        );
+      }
+      const fallbackSoundGroup = soundGroups.children.find(
+        t => t.name === fallbackSoundGroupName && t.type === 'group'
+      );
+
+      const soundGroup = songSoundGroup || fallbackSoundGroup;
 
       if (!soundGroup || soundGroup.type !== 'group') {
         // latter check is just to make typescript happy
-        console.warn(`No sounds could be found for '${currentSong}'`);
+        console.warn(`No sounds could be found for '${currentSong}'.`);
         return [];
       }
 
