@@ -60,16 +60,31 @@ const main = async () => {
         return [];
       }
       const soundGroupForCurrentSong = soundsGroup.children.find(
-        t => t.name === currentSong
+        t => t.name === currentSong && t.type === 'group'
       );
-      if (
-        !soundGroupForCurrentSong ||
-        soundGroupForCurrentSong.type !== 'group'
-      ) {
-        console.warn(`Sounds for current song '${currentSong}' not found`);
+      if (!soundGroupForCurrentSong) {
+        console.warn(
+          `Sounds for current song '${currentSong}' not found, using default sounds`
+        );
+      }
+      const fallBackSoundGroup = soundsGroup.children.find(
+        t => t.name === 'Default' && t.type === 'group'
+      );
+      if (!fallBackSoundGroup) {
+        console.warn(
+          `Default sounds not found. Make sure to add a track group named 'Default' to the selected track group '${soundsGroupName}'`
+        );
+      }
+
+      const soundGroup = soundGroupForCurrentSong || fallBackSoundGroup;
+
+      if (!soundGroup || soundGroup.type !== 'group') {
+        // latter check is just to make typescript happy
+        console.warn(`No sounds could be found for '${currentSong}'`);
         return [];
       }
-      const tracksForCurrentSong = soundGroupForCurrentSong.children
+
+      const tracksForCurrentSong = soundGroup.children
         .filter(t => t.type === 'midiOrAudio')
         .map(t => t.abletonJsTrack);
 
