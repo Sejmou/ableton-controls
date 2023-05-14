@@ -15,6 +15,7 @@ import {
   withLatestFrom,
   buffer,
   debounceTime,
+  BehaviorSubject,
 } from 'rxjs';
 
 // Log all messages to the console
@@ -26,9 +27,10 @@ const main = async () => {
   const {
     currentSong$,
     currentSection$,
+    currentSectionLocator$,
+    currentSongLocator$,
     nextSongLocator$,
     previousSongLocator$,
-    currentSongLocator$,
   } = await createSongAndSection$(ableton);
 
   combineLatest([currentSong$, currentSection$]).subscribe(
@@ -112,12 +114,31 @@ const main = async () => {
   // play/pause
   // customized so that playback always starts at the beginning of the current song
   const playPause$ = noteOn$.pipe(filter(m => m.channel == 2 && m.note == 2));
+
+  type StartPlaybackOptions = 'current song' | 'current section';
+  let startPlaybackOption: StartPlaybackOptions = 'current song';
+  const currentStartPlaybackOption$ = new BehaviorSubject<StartPlaybackOptions>(
+    startPlaybackOption
+  );
+
+  currentStartPlaybackOption$.subscribe(
+    option =>
+      void console.log(`hitting play button will start playback from ${option}`)
+  );
+
   playPause$
-    .pipe(withLatestFrom(currentSongLocator$))
-    .subscribe(async ([_, locator]) => {
+    .pipe(
+      withLatestFrom(
+        currentSongLocator$,
+        currentSectionLocator$,
+        currentStartPlaybackOption$
+      )
+    )
+    .subscribe(async ([_, songLocator, sectionLocator, playbackOption]) => {
       const playing = await ableton.song.get('is_playing');
       let currentTime = await ableton.song.get('current_song_time');
-      console.log({ playing, currentTime, locatorTime: locator?.time });
+      const locator =
+        playbackOption === 'current song' ? songLocator : sectionLocator;
       if (locator && !playing) {
         while (locator.time < currentTime) {
           await ableton.song.jumpToPrevCue();
@@ -125,6 +146,19 @@ const main = async () => {
         }
       }
       await ableton.song.set('is_playing', !playing);
+    });
+
+  playPause$
+    .pipe(
+      buffer(playPause$.pipe(throttleTime(500), debounceTime(500))),
+      filter(messages => messages.length > 1) // makes this emit only on double tap
+    )
+    .subscribe(() => {
+      startPlaybackOption =
+        startPlaybackOption === 'current song'
+          ? 'current section'
+          : 'current song';
+      currentStartPlaybackOption$.next(startPlaybackOption);
     });
 };
 

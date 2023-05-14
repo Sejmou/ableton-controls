@@ -124,6 +124,7 @@ export async function createSongAndSection$(ableton: Ableton) {
   return {
     currentSong$,
     currentSection$,
+    currentSectionLocator$,
     nextSectionLocator$,
     previousSectionLocator$,
     currentSongLocator$,
