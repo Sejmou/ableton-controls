@@ -71,15 +71,36 @@ export async function createSongAndSection$(ableton: Ableton) {
     currentSongLocator$,
     nextSongLocator$,
   ]).pipe(
-    map(([locators, currentSongLocator, nextSongLocator]) =>
-      locators.filter(
+    map(([locators, currentSongLocator, nextSongLocator]) => {
+      if (!currentSongLocator) {
+        console.warn(
+          'No song locator found. Have you added a locator with the name of the song before adding any section marker (locator starting with #)?'
+        );
+        return [];
+      }
+      const createdSectionMarkers = locators.filter(
         l =>
           l.type === 'section' &&
           currentSongLocator &&
           l.time >= currentSongLocator.time &&
           (!nextSongLocator || l.time < nextSongLocator.time)
-      )
-    )
+      );
+      const firstSectionMarker = createdSectionMarkers[0];
+      const startOfSongSectionMarkerExists =
+        firstSectionMarker &&
+        firstSectionMarker.time == currentSongLocator.time;
+      if (startOfSongSectionMarkerExists) {
+        return createdSectionMarkers;
+      } else {
+        const startOfSongSectionMarker: Locator = {
+          name: 'Song Start',
+          time: currentSongLocator.time,
+          type: 'section',
+          cuePoint: currentSongLocator.cuePoint,
+        };
+        return [startOfSongSectionMarker, ...createdSectionMarkers];
+      }
+    })
   );
 
   const currentSectionLocator$ = combineLatest([sectionLocators$, time$]).pipe(
