@@ -28,6 +28,8 @@ const main = async () => {
     currentSong$,
     currentSection$,
     currentSectionLocator$,
+    nextSectionLocator$,
+    previousSectionLocator$,
     currentSongLocator$,
     nextSongLocator$,
     previousSongLocator$,
@@ -128,6 +130,8 @@ const main = async () => {
 
   playPause$
     .pipe(
+      buffer(playPause$.pipe(throttleTime(500), debounceTime(500))),
+      filter(messages => messages.length == 1), // makes this emit only on single tap
       withLatestFrom(
         currentSongLocator$,
         currentSectionLocator$,
@@ -136,16 +140,19 @@ const main = async () => {
     )
     .subscribe(async ([_, songLocator, sectionLocator, playbackOption]) => {
       const playing = await ableton.song.get('is_playing');
-      let currentTime = await ableton.song.get('current_song_time');
       const locator =
         playbackOption === 'current song' ? songLocator : sectionLocator;
-      if (locator && !playing) {
-        while (locator.time < currentTime) {
-          await ableton.song.jumpToPrevCue();
-          currentTime = await ableton.song.get('current_song_time');
-        }
-      }
       await ableton.song.set('is_playing', !playing);
+      if (!playing) {
+        if (!locator) {
+          console.warn(
+            `attempted to start playback from ${playbackOption}, but no locator was found`
+          );
+          return;
+        }
+        console.log(`starting playback from '${locator.name}'`);
+        await ableton.song.set('current_song_time', locator.time); // dirty hack to quickly move to locator after starting playback (could have started from anywhere as playhead position determines start time of playback, NOT current song time) - couldn't figure out how to move the playhead with the API
+      }
     });
 
   playPause$
@@ -159,6 +166,20 @@ const main = async () => {
           ? 'current section'
           : 'current song';
       currentStartPlaybackOption$.next(startPlaybackOption);
+    });
+
+  // section switching
+  const sectionSwitch$ = noteOn$.pipe(
+    filter(m => m.channel == 1 && m.note == 3)
+  );
+  sectionSwitch$
+    .pipe(buffer(sectionSwitch$.pipe(throttleTime(500), debounceTime(500))))
+    .pipe(withLatestFrom(nextSectionLocator$, previousSectionLocator$))
+    .subscribe(([messages, next, previous]) => {
+      const locator = messages.length > 1 ? previous : next;
+      if (locator) {
+        ableton.song.set('current_song_time', locator.time);
+      }
     });
 };
 
