@@ -84,24 +84,41 @@ const main = async () => {
         return [];
       }
 
-      const tracksForCurrentSong = soundGroup.children
-        .filter(t => t.type === 'midiOrAudio')
-        .map(t => t.abletonJsTrack);
+      const tracksForCurrentSong = soundGroup.children.filter(
+        t => t.type === 'midiOrAudio'
+      );
+
+      return tracksForCurrentSong;
+    })
+  );
+
+  tracksForCurrentSong$.subscribe(tracks => {
+    console.log(
+      `Tracks for current song:`,
+      tracks.map(t => t.name)
+    );
+  });
+
+  const currentSongAbletonJsTracks$ = tracksForCurrentSong$.pipe(
+    mergeMap(async tracks => {
+      const abletonJsTracks = tracks.map(t => t.abletonJsTrack);
 
       let someTrackArmed = false;
-      for (const track of tracksForCurrentSong) {
+      for (const track of abletonJsTracks) {
         const armed = await track.get('arm');
         if (armed) {
           someTrackArmed = true;
           break;
         }
       }
-      if (!someTrackArmed) tracksForCurrentSong[0].set('arm', true);
-      return tracksForCurrentSong;
+      if (!someTrackArmed) abletonJsTracks[0].set('arm', true);
+      return abletonJsTracks;
     })
   );
 
-  const armedTracks$ = tracksForCurrentSong$.pipe(mergeMap(getArmedTrackData));
+  const armedTracks$ = currentSongAbletonJsTracks$.pipe(
+    mergeMap(getArmedTrackData)
+  );
 
   const trackSwitch$ = noteOn$.pipe(filter(m => m.channel == 1 && m.note == 1));
   trackSwitch$
