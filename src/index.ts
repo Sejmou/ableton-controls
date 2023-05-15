@@ -16,6 +16,7 @@ import {
   buffer,
   debounceTime,
   BehaviorSubject,
+  map,
 } from 'rxjs';
 import { keyPresses$ } from './reactive-state/key-presses';
 
@@ -295,6 +296,29 @@ const main = async () => {
     });
 
   // loop toggle is included in Ableton Live's default keymap, so no need to implement it here (shortcut is 'cmd+L')
+
+  // tuner
+  tracksAndTrackGroups$.pipe(
+    map(tracksAndTrackGroups => {
+      const tunerTrack = tracksAndTrackGroups.find(
+        track => track.name === 'Tuner'
+      );
+      if (!tunerTrack || !(tunerTrack.type === 'midiOrAudio')) {
+        console.warn(
+          'no tuner track found. Make sure to add one to your set (named "Tuner", placed at root level)'
+        );
+        return;
+      }
+      return tunerTrack;
+    })
+  );
+
+  // idea: add key binding to toggle tuner track on/off via custom key mapping in Ableton Live
+
+  // this doesn't have to be done here, as it can easily be done directly in Ableton Live:
+  // first, add a tuner track to your set
+  // then, hit 'cmd+k' in Ableton Live and click the solo button of the tuner track to add a key binding
+  // hit 'cmd+k' again to exit key binding mode
 };
 
 main();
