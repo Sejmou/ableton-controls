@@ -17,6 +17,7 @@ import {
   debounceTime,
   BehaviorSubject,
 } from 'rxjs';
+import { keyPresses$ } from './reactive-state/key-presses';
 
 // Log all messages to the console
 const ableton = new Ableton({ logger: console });
@@ -224,6 +225,76 @@ const main = async () => {
         ableton.song.set('current_song_time', locator.time);
       }
     });
+
+  // loop settings - controlled via keyboard as my MIDI footswitch doesn't have enough buttons
+  const loopStartKeybindingPress$ = keyPresses$.pipe(
+    filter(({ downKeyMap }) => !!downKeyMap['S'] && !!downKeyMap['LEFT ALT'])
+  );
+  loopStartKeybindingPress$
+    .pipe(withLatestFrom(currentSectionLocator$))
+    .subscribe(async ([_, locator]) => {
+      if (!locator) {
+        console.warn(
+          `attempted to set loop start, but no current section was found`
+        );
+        return;
+      }
+      console.log(`setting loop start to '${locator.name}'`);
+
+      const newLoopStartTime = locator.time;
+      const currentLoopStartTime = await ableton.song.get('loop_start');
+      const currentLoopEndTime =
+        (await ableton.song.get('loop_length')) + currentLoopStartTime;
+      const loopLength = currentLoopEndTime - newLoopStartTime;
+      console.log(loopLength);
+
+      await ableton.song.set('loop_start', 0); // temporarily set loop start to 0 so that we can set loop length to any value up to the song length without producing an error
+      await ableton.song.set('loop_length', loopLength);
+      await ableton.song.set('loop_start', newLoopStartTime);
+    });
+
+  const loopEndKeybindingPress$ = keyPresses$.pipe(
+    filter(({ downKeyMap }) => !!downKeyMap['E'] && !!downKeyMap['LEFT ALT'])
+  );
+  loopEndKeybindingPress$
+    .pipe(
+      withLatestFrom(
+        currentSectionLocator$,
+        nextSectionLocator$,
+        nextSongLocator$
+      )
+    )
+    .subscribe(async ([_, currentSection, nextSection, nextSong]) => {
+      console.log('setting loop end');
+      if (!currentSection) {
+        console.warn(
+          `attempted to set loop end, but no current section was found`
+        );
+        return;
+      }
+      const currentTime = Math.round(
+        await ableton.song.get('current_song_time')
+      );
+      const isCuePointSelected = await ableton.song.isCuePointSelected();
+      const locatorToSetAsLoopEnd =
+        isCuePointSelected && currentSection.time == currentTime
+          ? currentSection
+          : nextSection || nextSong;
+
+      const loopStart = await ableton.song.get('loop_start');
+      console.log(
+        'setting loop end to',
+        locatorToSetAsLoopEnd ? `'${locatorToSetAsLoopEnd.name}'` : 'end of set'
+      );
+      const loopEnd = locatorToSetAsLoopEnd
+        ? locatorToSetAsLoopEnd.time
+        : await ableton.song.get('song_length');
+
+      const loopLength = loopEnd - loopStart;
+      await ableton.song.set('loop_length', loopLength);
+    });
+
+  // loop toggle is included in Ableton Live's default keymap, so no need to implement it here (shortcut is 'cmd+L')
 };
 
 main();
