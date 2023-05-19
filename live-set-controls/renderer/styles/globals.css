@@ -6,6 +6,15 @@
   body {
     @apply bg-gray-900 text-white;
   }
+  h1 {
+    @apply text-5xl;
+  }
+  h2 {
+    @apply text-3xl;
+  }
+  h3 {
+    @apply text-xl;
+  }
 }
 
 @layer components {

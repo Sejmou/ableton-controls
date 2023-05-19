@@ -1,29 +1,26 @@
-import React from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const LiveSetDataDisplay = dynamic(
+  () => import('~/components/LiveSetDataDisplay'),
+  {
+    ssr: false,
+  }
+);
 
 function Home() {
   return (
-    <React.Fragment>
+    <>
       <Head>
-        <title>Home - Nextron (with-typescript-tailwindcss)</title>
+        <title>Live Setlist Controls</title>
       </Head>
-      <div className='grid grid-col-1 text-2xl w-full text-center'>
-        <img className='ml-auto mr-auto' src='/images/logo.png' />
-        <span>⚡ Electron ⚡</span>
-        <span>+</span>
-        <span>Next.js</span>
-        <span>+</span>
-        <span>tailwindcss</span>
-        <span>=</span>
-        <span>💕 </span>
+      <div className="w-full h-full flex flex-col items-center justify-center p-4 ">
+        <h1 className="text-5xl font-extrabold tracking-tight sm:text-[5rem]">
+          My <span className="text-[hsl(280,100%,70%)]">Live</span> Set
+        </h1>
+        <LiveSetDataDisplay />
       </div>
-      <div className='mt-1 w-full flex-wrap flex justify-center'>
-        <Link href='/next'>
-          <a className='btn-blue'>Go to next page</a>
-        </Link>
-      </div>
-    </React.Fragment>
+    </>
   );
 }
 

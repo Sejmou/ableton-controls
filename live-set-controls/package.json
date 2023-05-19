@@ -1,9 +1,9 @@
 {
   "private": true,
-  "name": "my-nextron-app",
-  "description": "My application description",
+  "name": "live-setlist-controls",
+  "description": "Supercharge your Ableton Live setlist!",
   "version": "1.0.0",
-  "author": "Yoshihide Shiono <shiono.yoshihide@gmail.com>",
+  "author": "Samo Kolter <samo.kolter@gmail.com>",
   "main": "app/background.js",
   "scripts": {
     "dev": "nextron",
@@ -11,8 +11,16 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "ableton-js": "^3.1.8",
+    "classnames": "^2.3.2",
     "electron-serve": "^1.1.0",
-    "electron-store": "^8.1.0"
+    "electron-store": "^8.1.0",
+    "flowbite-react": "^0.4.4",
+    "midi": "^2.0.0",
+    "node-global-key-listener": "^0.1.1",
+    "observable-hooks": "^4.2.1",
+    "rxjs": "^7.8.1",
+    "zustand": "^4.3.8"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
