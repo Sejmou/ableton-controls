@@ -13,7 +13,7 @@ export async function createMidiInputStream$(portName: string) {
     port.toLowerCase().includes(portName.toLowerCase())
   );
   if (targetPortIdx == -1) {
-    throw new Error(`No port for port name '${portName}' not found`);
+    throw new Error(`No port for port name '${portName}' found`);
   }
   console.log(
     `opened MIDI input port '${ports[targetPortIdx]}', listening for MIDI messages`
