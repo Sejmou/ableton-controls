@@ -202,13 +202,6 @@
   resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.11.tgz#d421b6c527a3037f7c84433fd2c4229e016863d3"
   integrity sha512-wOuvG1SN4Us4rez+tylwwwCV1psiNVOkJeM3AUWUNWg/jDQY2+HE/444y5gc+jBmRqASOm2Oeh5c1axHobwRKQ==
 
-"@types/midi@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@types/midi/-/midi-2.0.0.tgz#a71b99f6535de07008d2ad2ad542758603b28e6b"
-  integrity sha512-5ZnGxX5t1lYn6rNB4pDrv4ijU0UnTsXa7mW8ic/RsxMJcPE+aafqyNYgNFj/rUKUlXGgwDFROaji1VqFoogGNQ==
-  dependencies:
-    "@types/node" "*"
-
 "@types/minimist@^1.2.0":
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/@types/minimist/-/minimist-1.2.2.tgz#ee771e2ba4b3dc5b372935d549fd9617bf345b8c"
