@@ -4,9 +4,9 @@ import {
   armPreviousTrack,
   getArmedTrackData,
 } from './track-arming';
-import { createSongAndSection$ } from './reactive-state/songs-and-sections';
-import { createTracksAndTrackGroups$ } from './reactive-state/tracks';
-import { createMidiInputStream$ } from './midi';
+import { createSongAndSection$ } from './reactive-state/live-set/songs-and-sections';
+import { createTracksAndTrackGroups$ } from './reactive-state/live-set/tracks';
+import { createMidiInputStream$ } from './reactive-state/midi';
 import {
   combineLatest,
   filter,

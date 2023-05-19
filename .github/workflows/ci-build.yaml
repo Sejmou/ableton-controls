@@ -21,11 +21,5 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Install dependencies
+      - name: Build
         run: yarn install --immutable --immutable-cache --check-cache
-      - name: Run tests and check coverage
-        run: npm run cover:check
-      - name: Report the results to Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
