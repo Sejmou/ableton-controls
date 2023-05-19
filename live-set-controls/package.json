@@ -11,18 +11,19 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "@react-midi/hooks": "^1.0.2",
     "ableton-js": "^3.1.8",
     "classnames": "^2.3.2",
     "electron-serve": "^1.1.0",
     "electron-store": "^8.1.0",
     "flowbite-react": "^0.4.4",
-    "midi": "^2.0.0",
     "node-global-key-listener": "^0.1.1",
     "observable-hooks": "^4.2.1",
     "rxjs": "^7.8.1",
     "zustand": "^4.3.8"
   },
   "devDependencies": {
+    "@electron/rebuild": "^3.2.13",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.26",
     "autoprefixer": "^10.4.7",

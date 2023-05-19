@@ -10,7 +10,7 @@ async function init() {
   const { currentSong$: currentSongChange$ } = await createSongAndSection$(
     ableton
   );
-  currentSongChange$.subscribe(newSong => currentSong$.next(newSong));
+  currentSongChange$.subscribe(newSong => currentSong$.next(newSong || ''));
 }
 
 init();

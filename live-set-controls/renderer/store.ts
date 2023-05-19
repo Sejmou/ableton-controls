@@ -2,17 +2,17 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 
 type Store = {
-  midiInputName?: string;
-  setMidiInputName: (name?: string) => void;
+  midiInput?: MIDIInput;
+  setMidiInput: (input?: MIDIInput) => void;
 };
 
 export const useStore = create<Store>()(
   devtools(
     persist(
       (set, get) => ({
-        setMidiInputName: input =>
+        setMidiInput: input =>
           set(() => ({
-            midiInputName: input,
+            midiInput: input,
           })),
       }),
 

@@ -1,44 +1,57 @@
-import { Input, MidiMessage } from 'midi';
+import { useEffect, useRef } from 'react';
 import { ControlChangeMessage, NoteMessage } from './types';
 import { Observable, Subject, filter, map } from 'rxjs';
 
-export async function createMidiInputStream$(portName: string) {
-  const input = new Input();
-  const ports = getPorts(input);
-  if (ports.length == 0) {
-    throw new Error('No MIDI input ports found');
-  }
+const midiInputSubject$ = new Subject<MIDIInput[]>();
 
-  const targetPortIdx = ports.findIndex(port =>
-    port.toLowerCase().includes(portName.toLowerCase())
-  );
-  if (targetPortIdx == -1) {
-    throw new Error(`No port for port name '${portName}' found`);
-  }
-  console.log(
-    `opened MIDI input port '${ports[targetPortIdx]}', listening for MIDI messages`
-  );
-  input.openPort(targetPortIdx);
-  const midiMessageData$ = new Subject<MIDIMessageData>();
-  input.on('message', (deltaTime, message) => {
-    midiMessageData$.next(extractData(message));
+async function init() {
+  if (typeof window === 'undefined') return;
+  const midiAccess = await window.navigator.requestMIDIAccess();
+  const inputs = midiAccess.inputs.values();
+  console.log([...inputs]);
+  midiAccess.addEventListener('statechange', () => {
+    midiInputSubject$.next([...midiAccess.inputs.values()]);
   });
+  midiInputSubject$.next([...midiAccess.inputs.values()]);
+}
+
+init();
+
+export const midiInputs$ = midiInputSubject$.asObservable();
+
+export function useMidiInputMessageStreams(input: MIDIInput) {
+  const midiMessageData$Ref = useRef(new Subject<MIDIMessageData>());
+  useEffect(() => {
+    input.onmidimessage = function (this, event: Event) {
+      const message = event as MIDIMessageEvent;
+      const data = extractData(message);
+      const midiMessageData$ = midiMessageData$Ref.current;
+      midiMessageData$.next(data);
+    };
+    return () => {
+      input.onmidimessage = null;
+    };
+  }, [input]);
+
+  const midiMessageData$ = midiMessageData$Ref.current;
 
   const noteOn$: Observable<NoteMessage> = midiMessageData$.pipe(
     filter(({ actionName }) => actionName == 'note on'),
     map(({ data, channel }) => ({
-      note: data[1],
-      velocity: data[2],
+      note: data[1]!,
+      velocity: data[2]!,
       channel,
+      type: 'note on',
     }))
   );
 
   const noteOff$: Observable<NoteMessage> = midiMessageData$.pipe(
     filter(({ actionName }) => actionName == 'note off'),
     map(({ data, channel }) => ({
-      note: data[1],
-      velocity: data[2],
+      note: data[1]!,
+      velocity: data[2]!,
       channel,
+      type: 'note off',
     }))
   );
 
@@ -46,9 +59,10 @@ export async function createMidiInputStream$(portName: string) {
     midiMessageData$.pipe(
       filter(({ actionName }) => actionName == 'control change'),
       map(({ data, channel }) => ({
-        control: data[1],
-        value: data[2],
+        control: data[1]!,
+        value: data[2]!,
         channel,
+        type: 'control change',
       }))
     );
 
@@ -60,11 +74,6 @@ export async function createMidiInputStream$(portName: string) {
   };
 }
 
-function getPorts(input: Input) {
-  const portCount = input.getPortCount();
-  return [...Array(portCount).keys()].map(i => input.getPortName(i));
-}
-
 type MIDIMessageData = {
   actionName: ActionNames;
   leastSig: number;
@@ -72,17 +81,19 @@ type MIDIMessageData = {
   data: number[];
 };
 
-function extractData(message: MidiMessage): MIDIMessageData {
-  const action = message[0] & 0xf0; // Mask channel/least significant bits;
+function extractData(message: MIDIMessageEvent): MIDIMessageData {
+  const data = message.data;
+
+  const action = data[0]! & 0xf0; // Mask channel/least significant bits;
   const actionName = getActionName(action);
 
-  const leastSig = message[0] & 0x0f; // Mask action bits;
+  const leastSig = data[0]! & 0x0f; // Mask action bits;
   const channel = leastSig + 1;
   return {
     actionName,
     leastSig,
     channel,
-    data: [...message],
+    data: [...data],
   };
 }
 

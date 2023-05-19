@@ -11,12 +11,24 @@ const LiveSetDataDisplay = ({ className }: Props) => {
 
   return (
     <div className={classNames('flex flex-col', className)}>
-      <div className="flex flex-col p-4 items-center">
-        <h3>Current Song</h3>
-        <h2>{currentSong}</h2>
-      </div>
+      <DataDisplay label="Song" value={currentSong ?? 'No song selected'} />
     </div>
   );
 };
 
 export default LiveSetDataDisplay;
+
+type DataDisplayProps = {
+  className?: string;
+  label: string;
+  value: string;
+};
+
+export const DataDisplay = ({ className, label, value }: DataDisplayProps) => {
+  return (
+    <div className={classNames('flex flex-col p-4 items-center', className)}>
+      <h3>{label}</h3>
+      <h2>{value}</h2>
+    </div>
+  );
+};

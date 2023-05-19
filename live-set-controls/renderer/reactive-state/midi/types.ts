@@ -13,12 +13,14 @@ export type MIDIMessage = {
 };
 
 export type NoteMessage = {
+  type: 'note on' | 'note off';
   note: number;
   velocity: number;
   channel: number;
 };
 
 export type ControlChangeMessage = {
+  type: 'control change';
   value: number;
   control: number;
   channel: number;
