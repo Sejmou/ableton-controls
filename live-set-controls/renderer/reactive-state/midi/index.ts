@@ -1,77 +1,96 @@
-import { useEffect, useRef } from 'react';
+import { Observable, filter, map } from 'rxjs';
 import { ControlChangeMessage, NoteMessage } from './types';
-import { Observable, Subject, filter, map } from 'rxjs';
+import { useMemo } from 'react';
 
-const midiInputSubject$ = new Subject<MIDIInput[]>();
-
-async function init() {
-  if (typeof window === 'undefined') return;
-  const midiAccess = await window.navigator.requestMIDIAccess();
-  const inputs = midiAccess.inputs.values();
-  console.log([...inputs]);
-  midiAccess.addEventListener('statechange', () => {
-    midiInputSubject$.next([...midiAccess.inputs.values()]);
+export const midiInputs$ = new Observable<MIDIInput[]>(subscriber => {
+  console.log('subscriber called Observable, getting midi access');
+  window.navigator.requestMIDIAccess().then(midiAccess => {
+    console.log('got midi access');
+    const listener = () => {
+      console.log('statechange');
+      subscriber.next([...midiAccess.inputs.values()]);
+    };
+    midiAccess.addEventListener('statechange', listener);
+    subscriber.next([...midiAccess.inputs.values()]);
+    return () => {
+      console.log('unsubscribing');
+      midiAccess.removeEventListener('statechange', listener);
+    };
   });
-  midiInputSubject$.next([...midiAccess.inputs.values()]);
+});
+
+// there must be a better way to do this
+function createMIDIMessageObservable(input: MIDIInput) {
+  return new Observable<MIDIMessageData>(subscriber => {
+    const listener = function (this: MIDIInput, event: Event) {
+      const midiMessageEvent = event as MIDIMessageEvent; // not sure why this is necessary
+      const data = extractData(midiMessageEvent);
+      subscriber.next(data);
+    };
+    input.addEventListener('midimessage', listener);
+    return () => {
+      console.log('unsubscribing');
+      input.removeEventListener('midimessage', listener);
+    };
+  });
 }
 
-init();
-
-export const midiInputs$ = midiInputSubject$.asObservable();
-
-export function useMidiInputMessageStreams(input: MIDIInput) {
-  const midiMessageData$Ref = useRef(new Subject<MIDIMessageData>());
-  useEffect(() => {
-    input.onmidimessage = function (this, event: Event) {
-      const message = event as MIDIMessageEvent;
-      const data = extractData(message);
-      const midiMessageData$ = midiMessageData$Ref.current;
-      midiMessageData$.next(data);
-    };
-    return () => {
-      input.onmidimessage = null;
-    };
-  }, [input]);
-
-  const midiMessageData$ = midiMessageData$Ref.current;
-
-  const noteOn$: Observable<NoteMessage> = midiMessageData$.pipe(
-    filter(({ actionName }) => actionName == 'note on'),
-    map(({ data, channel }) => ({
-      note: data[1]!,
-      velocity: data[2]!,
-      channel,
-      type: 'note on',
-    }))
+export function useMIDINoteOnStream(input: MIDIInput): Observable<NoteMessage> {
+  const obs = useMemo(
+    () =>
+      createMIDIMessageObservable(input).pipe(
+        filter(({ actionName }) => actionName == 'note on'),
+        map(({ data, channel }) => ({
+          note: data[1]!,
+          velocity: data[2]!,
+          channel,
+          type: 'note on' as const,
+        }))
+      ),
+    [input]
   );
 
-  const noteOff$: Observable<NoteMessage> = midiMessageData$.pipe(
-    filter(({ actionName }) => actionName == 'note off'),
-    map(({ data, channel }) => ({
-      note: data[1]!,
-      velocity: data[2]!,
-      channel,
-      type: 'note off',
-    }))
+  return obs;
+}
+
+export function useMIDINoteOffStream(
+  input: MIDIInput
+): Observable<NoteMessage> {
+  const obs = useMemo(
+    () =>
+      createMIDIMessageObservable(input).pipe(
+        filter(({ actionName }) => actionName == 'note off'),
+        map(({ data, channel }) => ({
+          note: data[1]!,
+          velocity: data[2]!,
+          channel,
+          type: 'note off' as const,
+        }))
+      ),
+    [input]
   );
 
-  const controlChange$: Observable<ControlChangeMessage> =
-    midiMessageData$.pipe(
-      filter(({ actionName }) => actionName == 'control change'),
-      map(({ data, channel }) => ({
-        control: data[1]!,
-        value: data[2]!,
-        channel,
-        type: 'control change',
-      }))
-    );
+  return obs;
+}
 
-  return {
-    midiMessageData$,
-    noteOn$,
-    noteOff$,
-    controlChange$,
-  };
+export function useMIDIControlChangeStream(
+  input: MIDIInput
+): Observable<ControlChangeMessage> {
+  const obs = useMemo(
+    () =>
+      createMIDIMessageObservable(input).pipe(
+        filter(({ actionName }) => actionName == 'control change'),
+        map(({ data, channel }) => ({
+          control: data[1]!,
+          value: data[2]!,
+          channel,
+          type: 'control change' as const,
+        }))
+      ),
+    [input]
+  );
+
+  return obs;
 }
 
 type MIDIMessageData = {

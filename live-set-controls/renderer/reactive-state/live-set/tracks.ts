@@ -95,6 +95,6 @@ export type GroupTrack = TrackBase & {
 
 export type MIDIOrAudioTrack = TrackBase & {
   type: 'midiOrAudio';
-  // MIDI and audio tracks are at the lowest level in the 'track hierarchy'
+  // MIDI and audio tracks are at the lowest level in the 'track hierarchy', i.e. they can not contain other tracks
   // they can be armed and disarmed safely
 };

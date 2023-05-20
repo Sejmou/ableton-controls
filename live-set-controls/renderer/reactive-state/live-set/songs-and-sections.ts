@@ -193,7 +193,7 @@ async function extractLocatorData(cuePoints: CuePoint[]): Promise<Locator[]> {
 
 function getCurrentLocator(locators: Locator[], time: number) {
   return locators.find(
-    (pt, i, arr) => pt.time <= time && (!arr[i + 1] || arr[i + 1].time > time)
+    (pt, i, arr) => pt.time <= time && (!arr[i + 1] || arr[i + 1]!.time > time)
   );
 }
 

@@ -1,7 +1,9 @@
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import MIDIInputSelect from '~/components/MIDIInputSelect';
 import NoSSRWrapper from '~/components/NoSSRWrapper';
+import { FaCog } from 'react-icons/fa';
+import { useRouter } from 'next/router';
+import Button from '~/components/Button';
 
 const LiveSetDataDisplay = dynamic(
   () => import('~/components/LiveSetDataDisplay'),
@@ -11,6 +13,11 @@ const LiveSetDataDisplay = dynamic(
 );
 
 function Home() {
+  const router = useRouter();
+  const handleClick = () => {
+    router.push('/midi-setup');
+  };
+
   return (
     <>
       <Head>
@@ -22,7 +29,11 @@ function Home() {
             My <span className="text-[hsl(280,100%,70%)]">Live</span> Set
           </h1>
           <LiveSetDataDisplay />
-          <MIDIInputSelect />
+          <Button
+            onClick={handleClick}
+            icon={<FaCog />}
+            label="MIDI Settings"
+          />
         </div>
       </NoSSRWrapper>
     </>
