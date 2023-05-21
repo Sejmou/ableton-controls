@@ -7,6 +7,7 @@ import Button from '~/components/Button';
 import SongSoundSelection from '~/components/SongSoundSelection';
 import SongPlayback from '~/components/SongPlayback';
 import SongPlaybackTracks from '~/components/SongPlaybackTracks';
+import SongSections from '~/components/SongSections';
 
 function Home() {
   const router = useRouter();
@@ -34,6 +35,7 @@ function Home() {
           <SongDisplay />
           <SongSoundSelection />
           <SongPlaybackTracks />
+          <SongSections />
           <SongPlayback />
         </div>
       </NoSSRWrapper>

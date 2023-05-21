@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { usePlaybackTracksForCurrentSong } from '~/state/live-set';
-import { MIDIOrAudioTrack } from '~/state/live-set/tracks';
+import { GroupTrack, MIDIOrAudioTrack } from '~/state/live-set/tracks';
 
 type Props = {
   className?: string;
@@ -33,7 +33,7 @@ export default SongPlaybackTracks;
 
 type PlaybackTrackProps = {
   className?: string;
-  track: MIDIOrAudioTrack;
+  track: MIDIOrAudioTrack | GroupTrack;
 };
 
 const PlaybackTrack = ({ className, track }: PlaybackTrackProps) => {

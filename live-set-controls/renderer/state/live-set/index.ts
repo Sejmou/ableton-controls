@@ -16,8 +16,49 @@ const currentSongLocator$ = new Subject<Locator>();
 const nextSongLocator$ = new Subject<Locator>();
 const previousSongLocator$ = new Subject<Locator>();
 const currentSongSounds$ = new BehaviorSubject<MIDIOrAudioTrack[]>([]);
-const currentSongPlaybackTracks$ = new BehaviorSubject<MIDIOrAudioTrack[]>([]);
+const currentSongPlaybackTracks$ = new BehaviorSubject<
+  (MIDIOrAudioTrack | GroupTrack)[]
+>([]);
 const playing$ = new BehaviorSubject(false);
+const sectionLocators$ = new BehaviorSubject<Locator[]>([]);
+const currentSectionLocator$ = new Subject<Locator | undefined>();
+
+async function setLoopStartToLocator(locator: Locator) {
+  console.log(`setting loop start to '${locator.name} @ ${locator.time}'`);
+
+  const newLoopStartTime = locator.time;
+  const currentLoopStartTime = await ableton.song.get('loop_start');
+  const currentLoopEndTime =
+    (await ableton.song.get('loop_length')) + currentLoopStartTime;
+  const loopLength = currentLoopEndTime - newLoopStartTime;
+  console.log(loopLength);
+
+  await ableton.song.set('loop_start', 0); // temporarily set loop start to 0 so that we can set loop length to any value up to the song length without producing an error
+  await ableton.song.set('loop_length', loopLength);
+  await ableton.song.set('loop_start', newLoopStartTime);
+}
+
+async function setLoopEndToLocator(locator: Locator) {
+  const loopStart = await ableton.song.get('loop_start');
+  console.log(
+    `setting loop end to ${locator.name}' @ ${locator.time} - loop start: ${loopStart}`
+  );
+  const loopEnd = locator.time;
+
+  const loopLength = loopEnd - loopStart;
+  await ableton.song.set('loop_length', loopLength);
+}
+
+async function setLoopEndToEndOfSet() {
+  const loopStart = await ableton.song.get('loop_start');
+  const loopEnd = await ableton.song.get('song_length');
+  console.log(
+    `setting loop end to end of set @ ${loopEnd} - loop start: ${loopStart}`
+  );
+
+  const loopLength = loopEnd - loopStart;
+  await ableton.song.set('loop_length', loopLength);
+}
 
 export function usePlayback() {
   const isPlaying = useObservableState(playing$);
@@ -55,6 +96,12 @@ export function useCurrentSongLocator() {
   return currentSongLocator;
 }
 
+export function useSectionsOfCurrentSong() {
+  const sectionLocators = useObservableState(sectionLocators$);
+  const currentSectionLocator = useObservableState(currentSectionLocator$);
+  return { sectionLocators, currentSectionLocator };
+}
+
 async function init() {
   let clientStarted = false;
   while (!clientStarted) {
@@ -74,6 +121,8 @@ async function init() {
     currentSongLocator$: currentSongLocatorChange$,
     nextSongLocator$: nextSongLocatorChange$,
     previousSongLocator$: previousSongLocatorChange$,
+    sectionLocators$: sectionLocatorsChange$,
+    currentSectionLocator$: currentSectionLocatorChange$,
   } = await createSongAndSection$(ableton);
   currentSongChange$.subscribe(console.log);
   currentSongLocatorChange$.subscribe(c => {
@@ -187,17 +236,21 @@ async function init() {
         return [];
       }
 
-      const tracksForCurrentSong =
-        playbackTrackGroupForCurrentSong.children.filter(
-          t => t.type === 'midiOrAudio'
-        );
+      const tracksForCurrentSong = playbackTrackGroupForCurrentSong.children; // don't filter for only midiOrAudio tracks, because tracks can also be grouped here (i.e. drums with multiple tracks)
 
-      return tracksForCurrentSong as MIDIOrAudioTrack[];
+      return tracksForCurrentSong;
     })
   );
 
   playbackTracksForCurrentSong$.subscribe(tracks => {
     currentSongPlaybackTracks$.next(tracks);
+  });
+
+  sectionLocatorsChange$.subscribe(locators => {
+    sectionLocators$.next(locators);
+  });
+  currentSectionLocatorChange$.subscribe(locator => {
+    currentSectionLocator$.next(locator);
   });
 }
 

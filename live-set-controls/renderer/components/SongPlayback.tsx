@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { useCurrentSongLocator, usePlayback } from '~/state/live-set';
+import { usePlayback } from '~/state/live-set';
 import Button from './Button';
 import electron from 'electron';
 import { useEffect, useMemo } from 'react';
@@ -11,7 +11,6 @@ type Props = {
 };
 
 const SongPlayback = ({ className }: Props) => {
-  const locator = useCurrentSongLocator();
   const { isPlaying, start, stop, resume } = usePlayback();
 
   const handlePlayPause = useMemo(() => {
@@ -19,11 +18,10 @@ const SongPlayback = ({ className }: Props) => {
       if (isPlaying) {
         await stop();
       } else {
-        await locator?.cuePoint.jump();
         await start();
       }
     };
-  }, [isPlaying, locator, start, stop]);
+  }, [isPlaying, start, stop]);
 
   useEffect(() => {
     ipcRenderer.on('play-pause', () => {
@@ -34,13 +32,11 @@ const SongPlayback = ({ className }: Props) => {
     };
   }, [handlePlayPause]);
 
-  const playingString = isPlaying ? 'Playing' : 'Stopped';
-
   return (
     <div className={classNames('', className)}>
       <h3>Playback</h3>
-      {playingString}
-      <Button onClick={handlePlayPause} label={isPlaying ? 'Stop' : 'Start'} />
+      {isPlaying ? 'Playing' : 'Stopped'}
+      <Button onClick={handlePlayPause} label={isPlaying ? 'Stop' : 'Play'} />
     </div>
   );
 };
