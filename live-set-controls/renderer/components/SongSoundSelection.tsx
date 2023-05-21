@@ -1,13 +1,13 @@
 import classNames from 'classnames';
-import { useTracksForCurrentSong } from '~/state/live-set';
+import { useArmableTracksForCurrentSong } from '~/state/live-set';
 import { MIDIOrAudioTrack } from '~/state/live-set/tracks';
 
 type Props = {
   className?: string;
 };
 
-const SongTracks = ({ className }: Props) => {
-  const tracks = useTracksForCurrentSong();
+const SongSoundSelection = ({ className }: Props) => {
+  const sounds = useArmableTracksForCurrentSong();
   return (
     <div
       className={classNames(
@@ -15,13 +15,13 @@ const SongTracks = ({ className }: Props) => {
         className
       )}
     >
-      <h3>Tracks</h3>
+      <h3>Sounds for current song</h3>
       <div className="grid grid-cols-fr w-full gap-2">
-        {tracks?.map((track, i) => (
-          <SongTrack
-            key={track.id}
+        {sounds?.map(sound => (
+          <SoundForSong
+            key={sound.id}
             className="flex-1 whitespace-nowrap"
-            track={track}
+            trackForSound={sound}
           />
         ))}
       </div>
@@ -29,32 +29,31 @@ const SongTracks = ({ className }: Props) => {
   );
 };
 
-export default SongTracks;
+export default SongSoundSelection;
 
-type TrackProps = {
+type SoundProps = {
   className?: string;
-  track: MIDIOrAudioTrack;
+  trackForSound: MIDIOrAudioTrack;
 };
 
-const SongTrack = ({ className, track }: TrackProps) => {
-  console.log('track', track);
+const SoundForSong = ({ className, trackForSound }: SoundProps) => {
   const toggleArmed = () => {
-    if (track.isArmed) {
-      track.disarm();
+    if (trackForSound.isArmed) {
+      trackForSound.disarm();
     } else {
-      track.arm();
+      trackForSound.arm();
     }
   };
   return (
     <div
       className={classNames(
         'flex flex-col p-4 items-center',
-        track.isArmed && 'bg-red-500',
+        trackForSound.isArmed && 'bg-red-500',
         className
       )}
       onClick={toggleArmed}
     >
-      <h2>{track.name}</h2>
+      <h2>{trackForSound.name}</h2>
     </div>
   );
 };

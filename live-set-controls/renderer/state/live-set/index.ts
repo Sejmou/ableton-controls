@@ -11,9 +11,8 @@ const currentSong$ = new BehaviorSubject('');
 const currentSongLocator$ = new Subject<Locator>();
 const nextSongLocator$ = new Subject<Locator>();
 const previousSongLocator$ = new Subject<Locator>();
-const currentSongTracks$ = new BehaviorSubject<MIDIOrAudioTrack[]>([]);
+const currentSongSounds$ = new BehaviorSubject<MIDIOrAudioTrack[]>([]);
 const playing$ = new BehaviorSubject(false);
-export const isPlaying$ = playing$.asObservable();
 
 export function usePlayback() {
   const isPlaying = useObservableState(playing$);
@@ -36,8 +35,8 @@ export function useCurrentSong() {
   return currentSong;
 }
 
-export function useTracksForCurrentSong() {
-  const tracks = useObservableState(currentSongTracks$);
+export function useArmableTracksForCurrentSong() {
+  const tracks = useObservableState(currentSongSounds$);
   return tracks;
 }
 
@@ -140,7 +139,7 @@ async function init() {
   );
 
   tracksForCurrentSong$.subscribe(tracks => {
-    currentSongTracks$.next(tracks);
+    currentSongSounds$.next(tracks);
   });
 }
 

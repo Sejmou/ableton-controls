@@ -4,7 +4,7 @@ import NoSSRWrapper from '~/components/NoSSRWrapper';
 import { FaCog } from 'react-icons/fa';
 import { useRouter } from 'next/router';
 import Button from '~/components/Button';
-import SongTracks from '~/components/SongTracks';
+import SongSoundSelection from '~/components/SongSoundSelection';
 import SongPlayback from '~/components/SongPlayback';
 
 function Home() {
@@ -31,7 +31,7 @@ function Home() {
             />
           </div>
           <SongDisplay />
-          <SongTracks />
+          <SongSoundSelection />
           <SongPlayback />
         </div>
       </NoSSRWrapper>
