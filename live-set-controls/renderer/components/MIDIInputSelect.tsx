@@ -7,9 +7,9 @@ import {
   useMIDINoteOffStream,
   useMIDIControlChangeStream,
   useMidiInputs,
-} from '~/reactive-state/midi';
-import { ControlChangeMessage, NoteMessage } from '~/reactive-state/midi/types';
-import { useStore } from '~/store';
+} from '~/state/midi';
+import { ControlChangeMessage, NoteMessage } from '~/state/midi/types';
+import { useSettingsStore } from '~/state/settings-store';
 
 type Props = {
   className?: string;
@@ -18,8 +18,8 @@ type Props = {
 const MIDIInputSelect = ({ className }: Props) => {
   const inputs = useMidiInputs();
   console.log('available MIDI inputs', inputs);
-  const midiInputId = useStore(state => state.midiInputId);
-  const setMidiInputId = useStore(state => state.setMidiInputId);
+  const midiInputId = useSettingsStore(state => state.midiInputId);
+  const setMidiInputId = useSettingsStore(state => state.setMidiInputId);
   const midiInput = useMemo(
     () => inputs?.find(i => i.id === midiInputId),
     [inputs, midiInputId]

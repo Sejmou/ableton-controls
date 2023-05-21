@@ -1,10 +1,13 @@
 import classNames from 'classnames';
 import { useState } from 'react';
-import { MIDINoteFilters, useMIDINoteCallback } from '~/reactive-state/midi';
-import { useMidiInput } from '~/store';
+import {
+  MIDINoteFilters,
+  useMIDINoteCallback,
+  useCurrentMidiInput,
+} from '~/state/midi';
 import Input from './Input';
 import { Field, Formik } from 'formik';
-import { NoteMessage } from '~/reactive-state/midi/types';
+import { NoteMessage } from '~/state/midi/types';
 import Button from './Button';
 
 type Props = {
@@ -18,7 +21,7 @@ const emptyFilters: MIDINoteFilters = {
 };
 
 const MIDINoteMessageTest = ({ className }: Props) => {
-  const input = useMidiInput();
+  const input = useCurrentMidiInput();
   const [filters, setFilters] = useState<MIDINoteFilters>(emptyFilters);
   const [currentColor, setCurrentColor] = useState<string>('black');
   const onMIDINoteMessage = (message: NoteMessage) => {

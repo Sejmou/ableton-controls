@@ -1,17 +1,27 @@
 import classNames from 'classnames';
-import { useObservableState } from 'observable-hooks';
-import { currentSong$ } from '~/reactive-state/live-set';
+import { useCurrentSong, useTracksForCurrentSong } from '~/state/live-set';
 
 type Props = {
   className?: string;
 };
 
 const LiveSetDataDisplay = ({ className }: Props) => {
-  const currentSong = useObservableState(currentSong$);
+  const currentSong = useCurrentSong();
+  const tracks = useTracksForCurrentSong();
 
   return (
     <div className={classNames('flex flex-col', className)}>
       <DataDisplay label="Song" value={currentSong ?? 'No song selected'} />
+      <div className="flex">
+        {tracks?.map((track, i) => (
+          <DataDisplay
+            key={track.id}
+            className="flex-1"
+            label={'Track ' + i.toString()}
+            value={track.name}
+          />
+        ))}
+      </div>
     </div>
   );
 };

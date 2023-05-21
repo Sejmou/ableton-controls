@@ -1,7 +1,8 @@
 import { BehaviorSubject, Observable, Subject, filter, map, of } from 'rxjs';
 import { ControlChangeMessage, NoteMessage } from './types';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useObservableState, useSubscription } from 'observable-hooks';
+import { useSettingsStore } from '~/state/settings-store';
 
 const midiInputsSubject = new BehaviorSubject<MIDIInput[]>([]);
 
@@ -17,6 +18,25 @@ window.navigator.requestMIDIAccess().then(midiAccess => {
 export function useMidiInputs() {
   const inputs = useObservableState(midiInputsSubject);
   return inputs;
+}
+
+// TODO: find out where to place this, maybe reorganize files someday
+export function useCurrentMidiInput() {
+  const inputId = useSettingsStore(state => state.midiInputId);
+  const [input, setInput] = useState<MIDIInput>();
+  useEffect(() => {
+    if (!inputId) {
+      return undefined;
+    }
+    const getMidiInput = async () => {
+      const midiAccess = await navigator.requestMIDIAccess();
+      const input = midiAccess.inputs.get(inputId);
+      setInput(input);
+    };
+    getMidiInput();
+  }, [inputId]);
+
+  return input;
 }
 
 // keep track of the observables for each input so that we don't create a new one every time
