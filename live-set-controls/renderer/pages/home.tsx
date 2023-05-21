@@ -5,6 +5,7 @@ import { FaCog } from 'react-icons/fa';
 import { useRouter } from 'next/router';
 import Button from '~/components/Button';
 import SongTracks from '~/components/SongTracks';
+import SongPlayback from '~/components/SongPlayback';
 
 function Home() {
   const router = useRouter();
@@ -31,6 +32,7 @@ function Home() {
           </div>
           <SongDisplay />
           <SongTracks />
+          <SongPlayback />
         </div>
       </NoSSRWrapper>
     </>

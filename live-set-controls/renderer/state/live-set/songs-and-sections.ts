@@ -167,7 +167,7 @@ export async function createSongAndSection$(ableton: Ableton) {
   };
 }
 
-type Locator = {
+export type Locator = {
   name: string;
   time: number;
   type: 'song-start' | 'section';
