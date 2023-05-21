@@ -33,13 +33,17 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
             parentId: track.get('group_track').then(t => t?.id),
             canBeArmed: track.get('can_be_armed'),
             abletonJsTrack: Promise.resolve(track),
+            isArmed: track.get('can_be_armed').then(canBeArmed => {
+              if (!canBeArmed) return false;
+              return track.get('arm');
+            }),
           })
         )
       )
     ),
     map(tracks => {
       return tracks.map(t => {
-        const { canBeArmed, name, parentId, id, abletonJsTrack } = t;
+        const { canBeArmed, name, parentId, id, abletonJsTrack, isArmed } = t;
 
         if (canBeArmed) {
           const type = 'midiOrAudio' as const; // I don't fully understand why this is necessary, but it is
@@ -49,6 +53,9 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
             id,
             type,
             abletonJsTrack,
+            isArmed,
+            arm: () => abletonJsTrack.set('arm', true),
+            disarm: () => abletonJsTrack.set('arm', false),
           };
         } else {
           const type = 'group' as const;
@@ -97,4 +104,7 @@ export type MIDIOrAudioTrack = TrackBase & {
   type: 'midiOrAudio';
   // MIDI and audio tracks are at the lowest level in the 'track hierarchy', i.e. they can not contain other tracks
   // they can be armed and disarmed safely
+  isArmed: boolean;
+  arm: () => Promise<null>;
+  disarm: () => Promise<null>;
 };
