@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 
@@ -25,3 +26,22 @@ export const useStore = create<Store>()(
     )
   )
 );
+
+// TODO: find out where to place this, maybe reorganize files someday
+export function useMidiInput() {
+  const inputId = useStore(state => state.midiInputId);
+  const [input, setInput] = useState<MIDIInput>();
+  useEffect(() => {
+    if (!inputId) {
+      return undefined;
+    }
+    const getMidiInput = async () => {
+      const midiAccess = await navigator.requestMIDIAccess();
+      const input = midiAccess.inputs.get(inputId);
+      setInput(input);
+    };
+    getMidiInput();
+  }, [inputId]);
+
+  return input;
+}

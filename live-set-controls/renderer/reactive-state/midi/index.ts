@@ -1,44 +1,120 @@
-import { Observable, filter, map } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, filter, map, of } from 'rxjs';
 import { ControlChangeMessage, NoteMessage } from './types';
 import { useMemo } from 'react';
+import { useObservableState, useSubscription } from 'observable-hooks';
 
-export const midiInputs$ = new Observable<MIDIInput[]>(subscriber => {
-  console.log('subscriber called Observable, getting midi access');
-  window.navigator.requestMIDIAccess().then(midiAccess => {
-    console.log('got midi access');
-    const listener = () => {
-      console.log('statechange');
-      subscriber.next([...midiAccess.inputs.values()]);
-    };
-    midiAccess.addEventListener('statechange', listener);
-    subscriber.next([...midiAccess.inputs.values()]);
-    return () => {
-      console.log('unsubscribing');
-      midiAccess.removeEventListener('statechange', listener);
-    };
-  });
+const midiInputsSubject = new BehaviorSubject<MIDIInput[]>([]);
+
+window.navigator.requestMIDIAccess().then(midiAccess => {
+  midiInputsSubject.next([...midiAccess.inputs.values()]);
+  const listener = () => {
+    console.log('statechange');
+    midiInputsSubject.next([...midiAccess.inputs.values()]);
+  };
+  midiAccess.addEventListener('statechange', listener);
 });
 
-// there must be a better way to do this
+export function useMidiInputs() {
+  const inputs = useObservableState(midiInputsSubject);
+  return inputs;
+}
+
+// keep track of the observables for each input so that we don't create a new one every time
+// key is the input id
+const midiInputMidiMessageObservables = new Map<
+  string,
+  Observable<MIDIMessageData>
+>();
+
+function useMidiInputMessageObservable(input?: MIDIInput) {
+  const obs = useMemo(() => {
+    if (!input) {
+      return of();
+    }
+    const id = input.id;
+    if (!midiInputMidiMessageObservables.has(id)) {
+      const obs = createMIDIMessageObservable(input);
+      midiInputMidiMessageObservables.set(id, obs);
+    }
+    return midiInputMidiMessageObservables.get(id)!;
+  }, [input]);
+
+  return obs;
+}
+
+/**
+ * Creates an Observable for MIDI messages from the given input. Under the hood, this uses a Subject, so that only one event listener for the input is created.
+ * This Observable will keep emitting values through the lifetime of this application, the event listener used under the hood is never deleted.
+ * This 'memory leak' should not be a problem for this application, since only one Subject is ever created per input and the number of MIDI inputs is expected to be small.
+ *
+ * @param input the MIDI input to create an Observable for
+ * @returns an Observable for MIDI messages from the given input
+ */
 function createMIDIMessageObservable(input: MIDIInput) {
-  return new Observable<MIDIMessageData>(subscriber => {
-    const listener = function (this: MIDIInput, event: Event) {
-      const midiMessageEvent = event as MIDIMessageEvent; // not sure why this is necessary
-      const data = extractData(midiMessageEvent);
-      subscriber.next(data);
-    };
-    input.addEventListener('midimessage', listener);
-    return () => {
-      console.log('unsubscribing');
-      input.removeEventListener('midimessage', listener);
-    };
-  });
+  console.log(
+    `creating MIDI message observable for input '${input.name}' with ID ${input.id}`
+  );
+  const subject = new Subject<MIDIMessageData>();
+  const listener = function (this: MIDIInput, event: Event) {
+    const midiMessageEvent = event as MIDIMessageEvent; // not sure why this is necessary
+    const data = extractData(midiMessageEvent);
+    subject.next(data);
+  };
+  input.addEventListener('midimessage', listener);
+  return subject.asObservable();
+}
+
+export type MIDINoteFilters = {
+  note?: number;
+  channel?: number;
+  type?: 'note on' | 'note off';
+};
+
+export function useMIDINoteCallback(
+  callback: (message: NoteMessage) => void,
+  input?: MIDIInput,
+  filters?: MIDINoteFilters
+) {
+  const messageObs = useMidiInputMessageObservable(input);
+  const obs = useMemo(
+    () =>
+      messageObs.pipe(
+        filter(({ actionName }) =>
+          filters?.type
+            ? actionName == filters.type
+            : actionName == 'note on' || actionName == 'note off'
+        ),
+        map(({ data, channel, actionName }) => ({
+          note: data[1]!,
+          velocity: data[2]!,
+          channel,
+          type: actionName as 'note on' | 'note off',
+        })),
+        filter(msg => {
+          for (const key in filters) {
+            const filterKey = key as keyof typeof filters; // TS apparently needs help with this
+            if (
+              filters[filterKey] !== undefined &&
+              msg[filterKey] !== filters[filterKey]
+            )
+              return false;
+          }
+          return true;
+        })
+      ),
+    [input, filters]
+  );
+
+  useSubscription(obs, callback);
+
+  return;
 }
 
 export function useMIDINoteOnStream(input: MIDIInput): Observable<NoteMessage> {
+  const messageObs = useMidiInputMessageObservable(input);
   const obs = useMemo(
     () =>
-      createMIDIMessageObservable(input).pipe(
+      messageObs.pipe(
         filter(({ actionName }) => actionName == 'note on'),
         map(({ data, channel }) => ({
           note: data[1]!,
@@ -56,9 +132,10 @@ export function useMIDINoteOnStream(input: MIDIInput): Observable<NoteMessage> {
 export function useMIDINoteOffStream(
   input: MIDIInput
 ): Observable<NoteMessage> {
+  const messageObs = useMidiInputMessageObservable(input);
   const obs = useMemo(
     () =>
-      createMIDIMessageObservable(input).pipe(
+      messageObs.pipe(
         filter(({ actionName }) => actionName == 'note off'),
         map(({ data, channel }) => ({
           note: data[1]!,
@@ -76,9 +153,10 @@ export function useMIDINoteOffStream(
 export function useMIDIControlChangeStream(
   input: MIDIInput
 ): Observable<ControlChangeMessage> {
+  const messageObs = useMidiInputMessageObservable(input);
   const obs = useMemo(
     () =>
-      createMIDIMessageObservable(input).pipe(
+      messageObs.pipe(
         filter(({ actionName }) => actionName == 'control change'),
         map(({ data, channel }) => ({
           control: data[1]!,

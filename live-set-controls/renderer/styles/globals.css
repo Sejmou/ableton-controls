@@ -12,6 +12,9 @@
   h3 {
     @apply text-xl;
   }
+  h4 {
+    @apply text-lg;
+  }
 }
 
 @layer components {

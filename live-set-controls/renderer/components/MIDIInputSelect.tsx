@@ -1,12 +1,12 @@
 import { Label, Select } from 'flowbite-react';
 import { useObservableState } from 'observable-hooks';
-import { useEffect, useMemo } from 'react';
-import { bufferCount, from, map, merge, of, scan } from 'rxjs';
+import { useMemo } from 'react';
+import { merge, scan, startWith } from 'rxjs';
 import {
   useMIDINoteOnStream,
   useMIDINoteOffStream,
   useMIDIControlChangeStream,
-  midiInputs$,
+  useMidiInputs,
 } from '~/reactive-state/midi';
 import { ControlChangeMessage, NoteMessage } from '~/reactive-state/midi/types';
 import { useStore } from '~/store';
@@ -16,7 +16,7 @@ type Props = {
 };
 
 const MIDIInputSelect = ({ className }: Props) => {
-  const inputs = useObservableState(midiInputs$);
+  const inputs = useMidiInputs();
   console.log('available MIDI inputs', inputs);
   const midiInputId = useStore(state => state.midiInputId);
   const setMidiInputId = useStore(state => state.setMidiInputId);
@@ -49,16 +49,16 @@ const MIDIInputSelect = ({ className }: Props) => {
           className="border rounded p-2"
           required={false}
           onChange={handleSelectChange}
-          value={midiInputId || '(None)'}
+          value={midiInputId || ''}
         >
+          <option disabled={!midiInputId} className="border-0" value="">
+            {!midiInputId ? 'Select an Input' : '(None)'}
+          </option>
           {inputs.map(input => (
             <option className="border-0" key={input.id} value={input.id}>
               {input.name}
             </option>
           ))}
-          <option className="border-0" value={undefined}>
-            -
-          </option>
         </Select>
       </div>
       {midiInput && <MIDINoteLog input={midiInput} />}
@@ -71,16 +71,16 @@ const MIDINoteLog = ({ input }: { input: MIDIInput }) => {
   const noteOff$ = useMIDINoteOffStream(input);
   const controlChange$ = useMIDIControlChangeStream(input);
 
-  const recentMessages$ = useMemo(
-    () =>
-      merge(noteOn$, noteOff$, controlChange$).pipe(
-        scan((acc, val) => {
-          acc.push(val);
-          return acc.slice(-3);
-        }, [] as Array<NoteMessage | ControlChangeMessage>)
-      ),
-    [noteOn$, noteOff$, controlChange$]
-  );
+  const recentMessages$ = useMemo(() => {
+    console.log('streams changed');
+    return merge(noteOn$, noteOff$, controlChange$).pipe(
+      scan((acc, val) => {
+        acc.push(val);
+        return acc.slice(-5);
+      }, [] as Array<NoteMessage | ControlChangeMessage>),
+      startWith([])
+    );
+  }, [noteOn$, noteOff$, controlChange$]);
   const recentMessages = useObservableState(recentMessages$);
 
   return (
