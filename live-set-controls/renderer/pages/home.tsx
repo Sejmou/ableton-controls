@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import Button from '~/components/Button';
 import SongSoundSelection from '~/components/SongSoundSelection';
 import SongPlayback from '~/components/SongPlayback';
+import SongPlaybackTracks from '~/components/SongPlaybackTracks';
 
 function Home() {
   const router = useRouter();
@@ -32,6 +33,7 @@ function Home() {
           </div>
           <SongDisplay />
           <SongSoundSelection />
+          <SongPlaybackTracks />
           <SongPlayback />
         </div>
       </NoSSRWrapper>

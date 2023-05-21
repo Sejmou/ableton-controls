@@ -10,6 +10,9 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
     track.addListener('arm', async () => {
       tracks$.next(await ableton.song.get('tracks'));
     });
+    track.addListener('mute', async () => {
+      tracks$.next(await ableton.song.get('tracks'));
+    });
   }
   const tracks$ = new BehaviorSubject(initialTracks);
   ableton.song.addListener('tracks', async tracks => {
@@ -18,6 +21,9 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
       const canBeArmed = await track.get('can_be_armed');
       if (!canBeArmed) continue;
       track.addListener('arm', async () => {
+        tracks$.next(await ableton.song.get('tracks'));
+      });
+      track.addListener('mute', async () => {
         tracks$.next(await ableton.song.get('tracks'));
       });
     }
@@ -37,13 +43,24 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
               if (!canBeArmed) return false;
               return track.get('arm');
             }),
+            isMuted: track.get('mute'),
           })
         )
       )
     ),
     map(tracks => {
       return tracks.map(t => {
-        const { canBeArmed, name, parentId, id, abletonJsTrack, isArmed } = t;
+        const {
+          canBeArmed,
+          name,
+          parentId,
+          id,
+          abletonJsTrack,
+          isArmed,
+          isMuted,
+        } = t;
+        const mute = () => abletonJsTrack.set('mute', true);
+        const unmute = () => abletonJsTrack.set('mute', false);
 
         if (canBeArmed) {
           const type = 'midiOrAudio' as const; // I don't fully understand why this is necessary, but it is
@@ -56,10 +73,23 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
             isArmed,
             arm: () => abletonJsTrack.set('arm', true),
             disarm: () => abletonJsTrack.set('arm', false),
+            mute,
+            unmute,
+            isMuted,
           };
         } else {
           const type = 'group' as const;
-          return { name, parentId, id, children: [], type, abletonJsTrack };
+          return {
+            name,
+            parentId,
+            id,
+            children: [],
+            type,
+            abletonJsTrack,
+            mute,
+            unmute,
+            isMuted,
+          };
         }
       });
     }),
@@ -91,6 +121,9 @@ type TrackBase = {
   name: string;
   parentId?: string;
   abletonJsTrack: Track;
+  isMuted: boolean;
+  mute: () => Promise<null>;
+  unmute: () => Promise<null>;
 };
 
 export type GroupTrack = TrackBase & {

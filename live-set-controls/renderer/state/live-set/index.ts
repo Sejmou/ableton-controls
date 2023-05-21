@@ -1,7 +1,11 @@
 import { Ableton } from 'ableton-js';
 import { Locator, createSongAndSection$ } from './songs-and-sections';
 import { BehaviorSubject, Subject, combineLatest, mergeMap } from 'rxjs';
-import { MIDIOrAudioTrack, createTracksAndTrackGroups$ } from './tracks';
+import {
+  GroupTrack,
+  MIDIOrAudioTrack,
+  createTracksAndTrackGroups$,
+} from './tracks';
 import { useObservableState } from 'observable-hooks';
 import { useMemo } from 'react';
 
@@ -12,6 +16,7 @@ const currentSongLocator$ = new Subject<Locator>();
 const nextSongLocator$ = new Subject<Locator>();
 const previousSongLocator$ = new Subject<Locator>();
 const currentSongSounds$ = new BehaviorSubject<MIDIOrAudioTrack[]>([]);
+const currentSongPlaybackTracks$ = new BehaviorSubject<MIDIOrAudioTrack[]>([]);
 const playing$ = new BehaviorSubject(false);
 
 export function usePlayback() {
@@ -37,6 +42,11 @@ export function useCurrentSong() {
 
 export function useArmableTracksForCurrentSong() {
   const tracks = useObservableState(currentSongSounds$);
+  return tracks;
+}
+
+export function usePlaybackTracksForCurrentSong() {
+  const tracks = useObservableState(currentSongPlaybackTracks$);
   return tracks;
 }
 
@@ -89,7 +99,7 @@ async function init() {
 
   const tracksAndTrackGroups$ = await createTracksAndTrackGroups$(ableton);
 
-  const tracksForCurrentSong$ = combineLatest([
+  const soundsForCurrentSong$ = combineLatest([
     tracksAndTrackGroups$,
     currentSong$,
   ]).pipe(
@@ -138,8 +148,56 @@ async function init() {
     })
   );
 
-  tracksForCurrentSong$.subscribe(tracks => {
+  soundsForCurrentSong$.subscribe(tracks => {
     currentSongSounds$.next(tracks);
+  });
+
+  const playbackTracksForCurrentSong$ = combineLatest([
+    tracksAndTrackGroups$,
+    currentSong$,
+  ]).pipe(
+    mergeMap(async ([tracks, currentSong]) => {
+      const playbackTrackGroupGroupsGroupName = 'Playback Tracks'; // TODO: make this configurable
+      const playbackTrackGroupsGroup = tracks.find(
+        t => t.name === playbackTrackGroupGroupsGroupName && t.type === 'group'
+      );
+
+      if (
+        !playbackTrackGroupsGroup ||
+        playbackTrackGroupsGroup.type !== 'group'
+      ) {
+        // latter check is just to make typescript happy
+        console.warn(
+          `Playback Track group '${playbackTrackGroupGroupsGroupName}' not found`
+        );
+        return [];
+      }
+
+      const playbackTrackGroupForCurrentSong =
+        playbackTrackGroupsGroup.children.find(
+          t => t.name === currentSong && t.type === 'group'
+        ) as GroupTrack | undefined;
+
+      if (
+        !playbackTrackGroupForCurrentSong ||
+        playbackTrackGroupForCurrentSong.type !== 'group'
+      ) {
+        // latter check is just to make typescript happy
+        console.warn(`No playback tracks could be found for '${currentSong}'.`);
+        return [];
+      }
+
+      const tracksForCurrentSong =
+        playbackTrackGroupForCurrentSong.children.filter(
+          t => t.type === 'midiOrAudio'
+        );
+
+      return tracksForCurrentSong as MIDIOrAudioTrack[];
+    })
+  );
+
+  playbackTracksForCurrentSong$.subscribe(tracks => {
+    currentSongPlaybackTracks$.next(tracks);
   });
 }
 

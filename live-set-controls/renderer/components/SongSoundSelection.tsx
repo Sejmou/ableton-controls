@@ -47,7 +47,7 @@ const SoundForSong = ({ className, trackForSound }: SoundProps) => {
   return (
     <div
       className={classNames(
-        'flex flex-col p-4 items-center',
+        'flex flex-col p-4 items-center cursor-pointer',
         trackForSound.isArmed && 'bg-red-500',
         className
       )}
