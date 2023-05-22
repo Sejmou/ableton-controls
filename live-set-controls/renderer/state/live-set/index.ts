@@ -274,6 +274,14 @@ async function init() {
         return [];
       }
 
+      const otherSoundGroups = soundGroups.children.filter(
+        t => t.name !== soundGroupName && t.type === 'group'
+      );
+      otherSoundGroups.forEach(sg => {
+        sg.mute();
+      }); // mute all other sound groups so that they don't play when we switch to this one
+      soundGroup.unmute();
+
       const tracksForCurrentSong = soundGroup.children.filter(
         t => t.type === 'midiOrAudio'
       );
