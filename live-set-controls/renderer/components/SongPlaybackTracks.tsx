@@ -15,7 +15,7 @@ const SongPlaybackTracks = ({ className }: Props) => {
         className
       )}
     >
-      <h3>Playback tracks for current song</h3>
+      <h3>Playback tracks</h3>
       <div className="grid grid-cols-fr w-full gap-2">
         {tracks?.map(track => (
           <PlaybackTrack

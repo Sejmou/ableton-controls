@@ -5,6 +5,7 @@ import { FaArrowLeft } from 'react-icons/fa';
 import { useRouter } from 'next/router';
 import Button from '~/components/Button';
 import MIDINoteMessageTest from '~/components/MIDINoteMessageTest';
+import UpdateMIDIMappings from '~/components/UpdateMIDIMappings';
 
 function MIDISetup() {
   const router = useRouter();
@@ -24,6 +25,7 @@ function MIDISetup() {
             <span />
           </div>
           <MIDIInputSelect className="w-full" />
+          <UpdateMIDIMappings />
           <MIDINoteMessageTest className="w-full" />
         </div>
       </NoSSRWrapper>

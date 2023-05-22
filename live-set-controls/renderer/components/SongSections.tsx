@@ -16,7 +16,7 @@ const SongSections = ({ className }: Props) => {
 
   return (
     <div className={classNames('', className)}>
-      <h3>Song Sections</h3>
+      <h3>Sections</h3>
       <div className="flex flex-col items-center gap-1">
         {sectionLocators.map((locator, i) => (
           <SongSection

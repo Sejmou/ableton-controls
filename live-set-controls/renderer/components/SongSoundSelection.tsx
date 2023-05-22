@@ -24,7 +24,7 @@ const SongSoundSelection = ({ className }: Props) => {
         className
       )}
     >
-      <h3>Sounds for current song</h3>
+      <h3>Sounds</h3>
       <div className="grid grid-cols-fr w-full gap-2">
         {sounds?.map(sound => (
           <SoundForSong
