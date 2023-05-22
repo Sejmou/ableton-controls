@@ -7,7 +7,7 @@ import {
   createTracksAndTrackGroups$,
 } from './tracks';
 import { useObservableState } from 'observable-hooks';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 const ableton = new Ableton({ logger: console }); // Log all messages to the console
 // TODO: do I even need to use Subjects here?
@@ -20,45 +20,6 @@ const currentSongPlaybackTracks$ = new BehaviorSubject<
   (MIDIOrAudioTrack | GroupTrack)[]
 >([]);
 const playing$ = new BehaviorSubject(false);
-const sectionLocators$ = new BehaviorSubject<Locator[]>([]);
-const currentSectionLocator$ = new Subject<Locator | undefined>();
-
-async function setLoopStartToLocator(locator: Locator) {
-  console.log(`setting loop start to '${locator.name} @ ${locator.time}'`);
-
-  const newLoopStartTime = locator.time;
-  const currentLoopStartTime = await ableton.song.get('loop_start');
-  const currentLoopEndTime =
-    (await ableton.song.get('loop_length')) + currentLoopStartTime;
-  const loopLength = currentLoopEndTime - newLoopStartTime;
-  console.log(loopLength);
-
-  await ableton.song.set('loop_start', 0); // temporarily set loop start to 0 so that we can set loop length to any value up to the song length without producing an error
-  await ableton.song.set('loop_length', loopLength);
-  await ableton.song.set('loop_start', newLoopStartTime);
-}
-
-async function setLoopEndToLocator(locator: Locator) {
-  const loopStart = await ableton.song.get('loop_start');
-  console.log(
-    `setting loop end to ${locator.name}' @ ${locator.time} - loop start: ${loopStart}`
-  );
-  const loopEnd = locator.time;
-
-  const loopLength = loopEnd - loopStart;
-  await ableton.song.set('loop_length', loopLength);
-}
-
-async function setLoopEndToEndOfSet() {
-  const loopStart = await ableton.song.get('loop_start');
-  const loopEnd = await ableton.song.get('song_length');
-  console.log(
-    `setting loop end to end of set @ ${loopEnd} - loop start: ${loopStart}`
-  );
-
-  const loopLength = loopEnd - loopStart;
-  await ableton.song.set('loop_length', loopLength);
-}
 
 export function usePlayback() {
   const isPlaying = useObservableState(playing$);
@@ -96,10 +57,81 @@ export function useCurrentSongLocator() {
   return currentSongLocator;
 }
 
+const sectionLocators$ = new BehaviorSubject<Locator[]>([]);
+const currentSectionLocator$ = new Subject<Locator | undefined>();
+
 export function useSectionsOfCurrentSong() {
   const sectionLocators = useObservableState(sectionLocators$);
   const currentSectionLocator = useObservableState(currentSectionLocator$);
   return { sectionLocators, currentSectionLocator };
+}
+
+const looping$ = new BehaviorSubject(false);
+
+// DO NOT USE: broken atm
+export function useSongSectionLoops() {
+  const { sectionLocators } = useSectionsOfCurrentSong();
+
+  useEffect(() => {
+    const handleSectionsChanged = async () => {
+      const firstSectionLocator = sectionLocators[0];
+      if (!firstSectionLocator) {
+        console.warn('no sections found for current song!');
+        await setLoopStartToTime(0);
+        await setLoopEndToTime(await ableton.song.get('song_length'));
+      } else {
+        setLoopStartToLocator(firstSectionLocator);
+        const lastSectionLocator = sectionLocators[sectionLocators.length - 1];
+        if (!lastSectionLocator || lastSectionLocator === firstSectionLocator) {
+          console.warn(
+            'only one section found for current song! using song length as loop end'
+          );
+          await setLoopEndToTime(await ableton.song.get('song_length'));
+        } else {
+          await setLoopEndToLocator(lastSectionLocator);
+        }
+      }
+    };
+    handleSectionsChanged();
+  }, [sectionLocators]);
+
+  return;
+}
+
+async function setLoopStartToLocator(locator: Locator) {
+  console.log(`setting loop start to '${locator.name}'`);
+  setLoopStartToTime(locator.time);
+}
+
+async function setLoopStartToTime(time: number) {
+  const currentLoopStartTime = await ableton.song.get('loop_start');
+  const currentLoopEndTime =
+    (await ableton.song.get('loop_length')) + currentLoopStartTime;
+  const newLoopStartTime = time;
+  console.log(
+    `setting loop start to ${newLoopStartTime}; loop end: ${currentLoopEndTime}`
+  );
+
+  const loopLength = currentLoopEndTime - newLoopStartTime;
+  console.log(`setting loop length to ${loopLength}`);
+  await ableton.song.set('loop_start', 0); // temporarily set loop start to 0 so that we can set loop length to any value up to the song length without producing an error
+  await ableton.song.set('loop_length', loopLength);
+  await ableton.song.set('loop_start', newLoopStartTime);
+}
+
+async function setLoopEndToLocator(locator: Locator) {
+  console.log(`setting loop end to ${locator.name}'`);
+  await setLoopEndToTime(locator.time);
+}
+
+async function setLoopEndToTime(time: number) {
+  const loopStart = await ableton.song.get('loop_start');
+  const loopEnd = time;
+  console.log(`setting loop end to ${loopEnd}; loop start: ${loopStart}`);
+
+  const newLoopLength = loopEnd - loopStart;
+  console.log(`setting loop length to ${newLoopLength}`);
+  await ableton.song.set('loop_length', newLoopLength);
 }
 
 async function init() {
@@ -251,6 +283,11 @@ async function init() {
   });
   currentSectionLocatorChange$.subscribe(locator => {
     currentSectionLocator$.next(locator);
+  });
+
+  const isLooping = await ableton.song.get('loop');
+  ableton.song.addListener('loop', isLooping => {
+    looping$.next(isLooping);
   });
 }
 

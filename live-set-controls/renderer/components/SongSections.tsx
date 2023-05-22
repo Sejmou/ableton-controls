@@ -1,5 +1,8 @@
 import classNames from 'classnames';
-import { useSectionsOfCurrentSong } from '~/state/live-set';
+import {
+  useSectionsOfCurrentSong,
+  useSongSectionLoops,
+} from '~/state/live-set';
 import { Locator } from '~/state/live-set/songs-and-sections';
 
 type Props = {
@@ -8,10 +11,8 @@ type Props = {
 
 const SongSections = ({ className }: Props) => {
   const { sectionLocators, currentSectionLocator } = useSectionsOfCurrentSong();
-  console.log(
-    sectionLocators.map(l => l.name),
-    currentSectionLocator?.name
-  );
+
+  // useSongSectionLoops();
 
   return (
     <div className={classNames('', className)}>
