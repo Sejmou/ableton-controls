@@ -42,7 +42,7 @@ export function useCurrentSong() {
   return currentSong;
 }
 
-export function useArmableTracksForCurrentSong() {
+export function useSoundsForCurrentSong() {
   const tracks = useObservableState(currentSongSounds$);
   return tracks;
 }
@@ -193,6 +193,8 @@ async function init() {
   const songNameSoundGroupOverride: Record<string, string> = {
     'Slow Dancing (Live)': 'Slow Dancing',
     'Slow Dancing (Studio)': 'Slow Dancing',
+    'Message In A Bottle (Live)': 'Message In A Bottle',
+    'Message In A Bottle (Studio)': 'Message In A Bottle',
   };
 
   const tracksAndTrackGroups$ = await createTracksAndTrackGroups$(ableton);

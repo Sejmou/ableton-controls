@@ -1,5 +1,6 @@
 import classNames from 'classnames';
-import { useArmableTracksForCurrentSong } from '~/state/live-set';
+import { useEffect } from 'react';
+import { useSoundsForCurrentSong, useCurrentSong } from '~/state/live-set';
 import { MIDIOrAudioTrack } from '~/state/live-set/tracks';
 
 type Props = {
@@ -7,7 +8,15 @@ type Props = {
 };
 
 const SongSoundSelection = ({ className }: Props) => {
-  const sounds = useArmableTracksForCurrentSong();
+  const sounds = useSoundsForCurrentSong();
+  const currentSong = useCurrentSong();
+  useEffect(() => {
+    sounds?.forEach((sound, i) => {
+      if (i === 0) sound.arm();
+      else sound.disarm();
+    });
+  }, [currentSong]);
+
   return (
     <div
       className={classNames(
