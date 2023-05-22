@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import SongDisplay from '~/components/SongDisplay';
+import Songs from '~/components/Songs';
 import NoSSRWrapper from '~/components/NoSSRWrapper';
 import { FaCog } from 'react-icons/fa';
 import { useRouter } from 'next/router';
@@ -32,7 +32,7 @@ function Home() {
               label="MIDI Settings"
             />
           </div>
-          <SongDisplay />
+          <Songs />
           <SongSoundSelection />
           <SongPlaybackTracks />
           <SongSections />

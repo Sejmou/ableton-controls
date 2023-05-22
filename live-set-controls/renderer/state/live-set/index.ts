@@ -52,6 +52,23 @@ export function usePlaybackTracksForCurrentSong() {
   return tracks;
 }
 
+export function useSongLocators() {
+  const currentSongLocator = useObservableState(currentSongLocator$);
+  const nextSongLocator = useObservableState(nextSongLocator$);
+  const previousSongLocator = useObservableState(previousSongLocator$);
+
+  const returnValue = useMemo(
+    () => ({
+      currentSongLocator,
+      nextSongLocator,
+      previousSongLocator,
+    }),
+    [currentSongLocator, nextSongLocator, previousSongLocator]
+  );
+
+  return returnValue;
+}
+
 export function useCurrentSongLocator() {
   const currentSongLocator = useObservableState(currentSongLocator$);
   return currentSongLocator;
