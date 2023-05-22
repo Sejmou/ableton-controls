@@ -12,14 +12,16 @@ import {
 
 const midiInputsSubject = new BehaviorSubject<MIDIInput[]>([]);
 
-window.navigator.requestMIDIAccess().then(midiAccess => {
-  midiInputsSubject.next([...midiAccess.inputs.values()]);
-  const listener = () => {
-    console.log('statechange');
+if (typeof window !== 'undefined') {
+  window.navigator.requestMIDIAccess().then(midiAccess => {
     midiInputsSubject.next([...midiAccess.inputs.values()]);
-  };
-  midiAccess.addEventListener('statechange', listener);
-});
+    const listener = () => {
+      console.log('statechange');
+      midiInputsSubject.next([...midiAccess.inputs.values()]);
+    };
+    midiAccess.addEventListener('statechange', listener);
+  });
+}
 
 export function useMidiInputs() {
   const inputs = useObservableState(midiInputsSubject);
