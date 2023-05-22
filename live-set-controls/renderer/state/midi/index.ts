@@ -3,6 +3,12 @@ import { ControlChangeMessage, NoteMessage } from './types';
 import { useEffect, useMemo, useState } from 'react';
 import { useObservableState, useSubscription } from 'observable-hooks';
 import { useSettingsStore } from '~/state/settings-store';
+import {
+  useJumpToNextSong,
+  useJumpToPreviousSong,
+  useSwitchToNextSound,
+  useSwitchToPreviousSound,
+} from '../live-set';
 
 const midiInputsSubject = new BehaviorSubject<MIDIInput[]>([]);
 
@@ -18,6 +24,42 @@ window.navigator.requestMIDIAccess().then(midiAccess => {
 export function useMidiInputs() {
   const inputs = useObservableState(midiInputsSubject);
   return inputs;
+}
+
+// dirty hack to make sure that only mappings that exist are applied by using this impossible filter if no mapping exists
+const impossibleFilter: MIDINoteFilters = {
+  channel: -1,
+};
+
+export function useMidiMappings() {
+  const midiInput = useCurrentMidiInput();
+  const mappings = useSettingsStore(state => state.midiMappings);
+
+  const switchToNextSound = useSwitchToNextSound();
+  const switchToPreviousSound = useSwitchToPreviousSound();
+  const jumpToNextSong = useJumpToNextSong();
+  const jumpToPreviousSong = useJumpToPreviousSong();
+
+  useMIDINoteCallback(
+    switchToNextSound,
+    midiInput,
+    mappings.nextSound || impossibleFilter
+  );
+  useMIDINoteCallback(
+    switchToPreviousSound,
+    midiInput,
+    mappings.prevSound || impossibleFilter
+  );
+  useMIDINoteCallback(
+    jumpToNextSong,
+    midiInput,
+    mappings.nextTrack || impossibleFilter
+  );
+  useMIDINoteCallback(
+    jumpToPreviousSong,
+    midiInput,
+    mappings.prevTrack || impossibleFilter
+  );
 }
 
 // TODO: find out where to place this, maybe reorganize files someday

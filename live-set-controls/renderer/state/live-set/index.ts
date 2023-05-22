@@ -47,6 +47,30 @@ export function useSoundsForCurrentSong() {
   return tracks;
 }
 
+export function useSwitchToNextSound() {
+  const sounds = useSoundsForCurrentSong();
+  const currentSoundIndex = sounds.findIndex(s => s.isArmed);
+
+  const nextSound = sounds[currentSoundIndex + 1];
+  return () => {
+    if (nextSound === undefined) return;
+    sounds[currentSoundIndex]?.disarm();
+    nextSound.arm();
+  };
+}
+
+export function useSwitchToPreviousSound() {
+  const sounds = useSoundsForCurrentSong();
+  const currentSoundIndex = sounds.findIndex(s => s.isArmed);
+
+  const previousSound = sounds[currentSoundIndex - 1];
+  return () => {
+    if (previousSound === undefined) return;
+    sounds[currentSoundIndex]?.disarm();
+    previousSound.arm();
+  };
+}
+
 export function usePlaybackTracksForCurrentSong() {
   const tracks = useObservableState(currentSongPlaybackTracks$);
   return tracks;
@@ -67,6 +91,16 @@ export function useSongLocators() {
   );
 
   return returnValue;
+}
+
+export function useJumpToNextSong() {
+  const { nextSongLocator } = useSongLocators();
+  return () => nextSongLocator?.cuePoint.jump();
+}
+
+export function useJumpToPreviousSong() {
+  const { previousSongLocator } = useSongLocators();
+  return () => previousSongLocator?.cuePoint.jump();
 }
 
 export function useCurrentSongLocator() {

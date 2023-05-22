@@ -30,7 +30,7 @@ const MIDINoteMessageTest = ({ className }: Props) => {
         const newMapping: MIDINoteFilters = {
           channel: message.channel,
           note: message.note,
-          type: 'note on',
+          type: 'note on', // TODO: support various types of MIDI messages
         };
         updateMidiMapping(actionToMap, newMapping);
         setActionToMap(null);
