@@ -1,10 +1,13 @@
 import classNames from 'classnames';
 import { useMemo, useState } from 'react';
 import {
+  MIDIControlChangeFilters,
   MIDINoteFilters,
-  useMIDIMessageCallback,
-  useCurrentMidiInput,
-} from '~/state/midi';
+  ParsedMIDIMessage,
+  isControlChangeMessage,
+  isNoteMessage,
+} from '~/state/midi/types';
+import { useMIDIMessageCallback, useCurrentMidiInput } from '~/state/midi';
 import { NoteMessage } from '~/state/midi/types';
 import Button from './Button';
 import {
@@ -25,14 +28,27 @@ const MIDINoteMessageTest = ({ className }: Props) => {
     null
   );
   const onMIDINoteMessage = useMemo(
-    () => (message: NoteMessage) => {
+    () => (message: ParsedMIDIMessage) => {
       if (actionToMap) {
-        const newMapping: MIDINoteFilters = {
-          channel: message.channel,
-          note: message.note,
-          type: 'note on', // TODO: support various types of MIDI messages
-        };
-        updateMidiMapping(actionToMap, newMapping);
+        // TODO: support various types of MIDI messages
+        if (isNoteMessage(message) && message.type === 'note on') {
+          const newMapping: MIDINoteFilters = {
+            channel: message.channel,
+            note: message.note,
+            type: 'note on',
+          };
+          updateMidiMapping(actionToMap, newMapping);
+        }
+        if (isControlChangeMessage(message)) {
+          const newMapping: MIDIControlChangeFilters = {
+            channel: message.channel,
+            value: message.value,
+            control: message.control,
+            type: 'control change',
+          };
+          updateMidiMapping(actionToMap, newMapping);
+        }
+
         setActionToMap(null);
       }
     },
@@ -62,6 +78,14 @@ const MIDINoteMessageTest = ({ className }: Props) => {
             <div>
               {JSON.stringify(midiMappings[action]) || 'No mapping set'}
             </div>
+          )}
+          {midiMappings[action] && (
+            <Button
+              onClick={() => {
+                updateMidiMapping(action, undefined);
+              }}
+              label="Remove"
+            />
           )}
         </div>
       ))}

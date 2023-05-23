@@ -25,8 +25,8 @@ type SettingsStore = {
   setMidiInputId: (name?: string) => void;
   midiMappings: MIDIMappings;
   updateMidiMapping: (
-    name: keyof MIDIMappings,
-    filters: MIDIMessageFilters
+    actionName: keyof MIDIMappings,
+    mapping?: MIDIMessageFilters
   ) => void;
 };
 

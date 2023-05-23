@@ -46,6 +46,7 @@ export interface MIDINoteFilters extends MIDIMessageFilters {
 }
 
 export interface MIDIControlChangeFilters extends MIDIMessageFilters {
+  control?: number;
   value?: number;
   type: 'control change';
 }
