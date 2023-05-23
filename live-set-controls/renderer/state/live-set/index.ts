@@ -13,8 +13,8 @@ const ableton = new Ableton({ logger: console }); // Log all messages to the con
 // TODO: do I even need to use Subjects here?
 const currentSong$ = new BehaviorSubject('');
 const currentSongLocator$ = new Subject<Locator>();
-const nextSongLocator$ = new Subject<Locator>();
-const previousSongLocator$ = new Subject<Locator>();
+const nextSongLocator$ = new Subject<Locator | undefined>();
+const previousSongLocator$ = new Subject<Locator | undefined>();
 const currentSongSounds$ = new BehaviorSubject<MIDIOrAudioTrack[]>([]);
 const currentSongPlaybackTracks$ = new BehaviorSubject<
   (MIDIOrAudioTrack | GroupTrack)[]
@@ -212,10 +212,10 @@ async function init() {
     if (c) currentSongLocator$.next(c);
   });
   nextSongLocatorChange$.subscribe(c => {
-    if (c) nextSongLocator$.next(c);
+    nextSongLocator$.next(c);
   });
   previousSongLocatorChange$.subscribe(c => {
-    if (c) previousSongLocator$.next(c);
+    previousSongLocator$.next(c);
   });
   currentSongChange$.subscribe(newSong => currentSong$.next(newSong || ''));
 

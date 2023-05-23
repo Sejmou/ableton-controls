@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { useCurrentSong, useSongLocators } from '~/state/live-set';
+import { useSongLocators } from '~/state/live-set';
 import { Locator } from '~/state/live-set/songs-and-sections';
 
 type Props = {
@@ -11,13 +11,26 @@ const SongDisplay = ({ className }: Props) => {
     useSongLocators();
 
   return (
-    <div className={classNames('flex flex-row gap', className)}>
-      <SongSelector label="Previous" locator={previousSongLocator} />
+    <div
+      className={classNames(
+        'grid grid-cols-3 gap-2 justify-between select-none',
+        className
+      )}
+    >
+      {previousSongLocator ? (
+        <SongSelector label="Previous" locator={previousSongLocator} />
+      ) : (
+        <div />
+      )}
       <CurrentSongDisplay
         label="Current Song"
         value={currentSongLocator?.name ?? 'No song selected'}
       />
-      <SongSelector label="Next" locator={nextSongLocator} />
+      {nextSongLocator ? (
+        <SongSelector label="Next" locator={nextSongLocator} />
+      ) : (
+        <div />
+      )}
     </div>
   );
 };
@@ -47,7 +60,7 @@ const CurrentSongDisplay = ({ className, label, value }: SongDisplayProps) => {
 type SongSelectorProps = {
   className?: string;
   label: string;
-  locator?: Locator;
+  locator: Locator;
 };
 
 const SongSelector = ({ className, locator, label }: SongSelectorProps) => {
@@ -57,10 +70,10 @@ const SongSelector = ({ className, locator, label }: SongSelectorProps) => {
         'flex flex-col p-4 items-center cursor-pointer scale-50 text-center',
         className
       )}
-      onClick={() => locator?.cuePoint.jump()}
+      onClick={() => locator.cuePoint.jump()}
     >
       <h2>{label}</h2>
-      <h1>{locator?.name}</h1>
+      <h1>{locator.name}</h1>
     </div>
   );
 };

@@ -44,7 +44,7 @@ export async function createSongAndSection$(ableton: Ableton) {
         l => l.name === currentSongLocator?.name
       );
       if (currentSongIndex === songLocators.length - 1) {
-        return null;
+        return;
       }
       return songLocators[currentSongIndex + 1];
     })
@@ -59,7 +59,7 @@ export async function createSongAndSection$(ableton: Ableton) {
         l => l.name === currentSongLocator?.name
       );
       if (currentSongIndex === 0) {
-        return null;
+        return;
       }
       return songLocators[currentSongIndex - 1];
     })
