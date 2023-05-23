@@ -1,14 +1,7 @@
 import { Label, Select } from 'flowbite-react';
-import { useObservableState } from 'observable-hooks';
-import { useMemo } from 'react';
-import { merge, scan, startWith } from 'rxjs';
-import {
-  useMIDINoteOnStream,
-  useMIDINoteOffStream,
-  useMIDIControlChangeStream,
-  useMidiInputs,
-} from '~/state/midi';
-import { ControlChangeMessage, NoteMessage } from '~/state/midi/types';
+import { useMemo, useState } from 'react';
+import { useMIDIMessageCallback, useMidiInputs } from '~/state/midi';
+import { ParsedMIDIMessage } from '~/state/midi/types';
 import { useSettingsStore } from '~/state/settings-store';
 
 type Props = {
@@ -67,35 +60,22 @@ const MIDIInputSelect = ({ className }: Props) => {
 };
 
 const MIDINoteLog = ({ input }: { input: MIDIInput }) => {
-  const noteOn$ = useMIDINoteOnStream(input);
-  const noteOff$ = useMIDINoteOffStream(input);
-  const controlChange$ = useMIDIControlChangeStream(input);
+  const [lastMessage, setLastMessage] = useState<ParsedMIDIMessage>();
 
-  const recentMessages$ = useMemo(() => {
-    console.log('streams changed');
-    return merge(noteOn$, noteOff$, controlChange$).pipe(
-      scan((acc, val) => {
-        acc.push(val);
-        return acc.slice(-5);
-      }, [] as Array<NoteMessage | ControlChangeMessage>),
-      startWith([])
-    );
-  }, [noteOn$, noteOff$, controlChange$]);
-  const recentMessages = useObservableState(recentMessages$);
+  const onMIDIMessage = (message: ParsedMIDIMessage) => {
+    console.log('message', message);
+    setLastMessage(message);
+  };
+
+  useMIDIMessageCallback(onMIDIMessage, input);
 
   return (
     <div className="flex flex-col">
-      <h3>Recent MIDI messages:</h3>
-      {recentMessages?.map((m, i) => {
-        if (!m) return <div>no message</div>;
-        const { type, ...rest } = m;
-        return (
-          <div key={i}>
-            <div>Event type: {type}</div>
-            <div>Data: {JSON.stringify(rest)}</div>
-          </div>
-        );
-      })}
+      <h3>Last MIDI message:</h3>
+      {!lastMessage && (
+        <p>Once a MIDI message was received it will be displayed here</p>
+      )}
+      {lastMessage && JSON.stringify(lastMessage)}
     </div>
   );
 };

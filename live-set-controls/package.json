@@ -11,7 +11,6 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "@react-midi/hooks": "^1.0.2",
     "ableton-js": "^3.1.8",
     "classnames": "^2.3.2",
     "electron-serve": "^1.1.0",

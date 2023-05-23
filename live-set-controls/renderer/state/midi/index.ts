@@ -1,8 +1,17 @@
-import { BehaviorSubject, Observable, Subject, filter, map, of } from 'rxjs';
-import { ControlChangeMessage, NoteMessage } from './types';
+import { BehaviorSubject, Observable, Subject, of } from 'rxjs';
+import {
+  ParsedMIDIMessage,
+  MIDIMessageFilters,
+  isControlChangeFilters,
+  isControlChangeMessage,
+  isNoteFilters,
+  isNoteMessage,
+  NoteMessage,
+  ControlChangeMessage,
+} from './types';
 import { useEffect, useMemo, useState } from 'react';
 import { useObservableState, useSubscription } from 'observable-hooks';
-import { useSettingsStore } from '~/state/settings-store';
+import { MIDIMappings, useSettingsStore } from '~/state/settings-store';
 import {
   useJumpToNextSong,
   useJumpToPreviousSong,
@@ -28,40 +37,38 @@ export function useMidiInputs() {
   return inputs;
 }
 
-// dirty hack to make sure that only mappings that exist are applied by using this impossible filter if no mapping exists
-const impossibleFilter: MIDINoteFilters = {
-  channel: -1,
-};
-
 export function useMidiMappings() {
-  const midiInput = useCurrentMidiInput();
-  const mappings = useSettingsStore(state => state.midiMappings);
-
   const switchToNextSound = useSwitchToNextSound();
   const switchToPreviousSound = useSwitchToPreviousSound();
   const jumpToNextSong = useJumpToNextSong();
   const jumpToPreviousSong = useJumpToPreviousSong();
 
-  useMIDINoteCallback(
-    switchToNextSound,
-    midiInput,
-    mappings.nextSound || impossibleFilter
-  );
-  useMIDINoteCallback(
-    switchToPreviousSound,
-    midiInput,
-    mappings.prevSound || impossibleFilter
-  );
-  useMIDINoteCallback(
-    jumpToNextSong,
-    midiInput,
-    mappings.nextTrack || impossibleFilter
-  );
-  useMIDINoteCallback(
-    jumpToPreviousSong,
-    midiInput,
-    mappings.prevTrack || impossibleFilter
-  );
+  useMIDIMapping('nextSound', switchToNextSound);
+  useMIDIMapping('prevSound', switchToPreviousSound);
+  useMIDIMapping('nextTrack', jumpToNextSong);
+  useMIDIMapping('prevTrack', jumpToPreviousSong);
+}
+
+export function useMIDIMapping(
+  action: keyof MIDIMappings,
+  callback: () => void
+) {
+  const midiInput = useCurrentMidiInput();
+  const mapping = useSettingsStore(state => state.midiMappings[action]);
+  const actionCallback: (message: ParsedMIDIMessage) => void = useMemo(() => {
+    if (!mapping) {
+      console.log('no MIDI mapping for', action);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      return () => {};
+    }
+    return message => {
+      if (matchesFilters(message, mapping)) {
+        callback();
+      }
+    };
+  }, [callback, mapping]);
+
+  useMIDIMessageCallback(actionCallback, midiInput);
 }
 
 // TODO: find out where to place this, maybe reorganize files someday
@@ -87,7 +94,7 @@ export function useCurrentMidiInput() {
 // key is the input id
 const midiInputMidiMessageObservables = new Map<
   string,
-  Observable<MIDIMessageData>
+  Observable<ParsedMIDIMessage>
 >();
 
 function useMidiInputMessageObservable(input?: MIDIInput) {
@@ -118,7 +125,7 @@ function createMIDIMessageObservable(input: MIDIInput) {
   console.log(
     `creating MIDI message observable for input '${input.name}' with ID ${input.id}`
   );
-  const subject = new Subject<MIDIMessageData>();
+  const subject = new Subject<ParsedMIDIMessage>();
   const listener = function (this: MIDIInput, event: Event) {
     const midiMessageEvent = event as MIDIMessageEvent; // not sure why this is necessary
     const data = extractData(midiMessageEvent);
@@ -128,137 +135,76 @@ function createMIDIMessageObservable(input: MIDIInput) {
   return subject.asObservable();
 }
 
-export type MIDINoteFilters = {
-  note?: number;
-  channel?: number;
-  type?: 'note on' | 'note off';
-};
-
-export function useMIDINoteCallback(
-  callback: (message: NoteMessage) => void,
-  input?: MIDIInput,
-  filters?: MIDINoteFilters
+export function useMIDIMessageCallback(
+  callback: (message: ParsedMIDIMessage) => void,
+  input?: MIDIInput
 ) {
   const messageObs = useMidiInputMessageObservable(input);
-  const obs = useMemo(
-    () =>
-      messageObs.pipe(
-        filter(({ actionName }) =>
-          filters?.type
-            ? actionName == filters.type
-            : actionName == 'note on' || actionName == 'note off'
-        ),
-        map(({ data, channel, actionName }) => ({
-          note: data[1]!,
-          velocity: data[2]!,
-          channel,
-          type: actionName as 'note on' | 'note off',
-        })),
-        filter(msg => {
-          for (const key in filters) {
-            const filterKey = key as keyof typeof filters; // TS apparently needs help with this
-            if (
-              filters[filterKey] !== undefined &&
-              msg[filterKey] !== filters[filterKey]
-            )
-              return false;
-          }
-          return true;
-        })
-      ),
-    [input, filters]
-  );
 
-  useSubscription(obs, callback);
+  useSubscription(messageObs, callback);
 
   return;
 }
 
-export function useMIDINoteOnStream(input: MIDIInput): Observable<NoteMessage> {
-  const messageObs = useMidiInputMessageObservable(input);
-  const obs = useMemo(
-    () =>
-      messageObs.pipe(
-        filter(({ actionName }) => actionName == 'note on'),
-        map(({ data, channel }) => ({
-          note: data[1]!,
-          velocity: data[2]!,
-          channel,
-          type: 'note on' as const,
-        }))
-      ),
-    [input]
-  );
-
-  return obs;
+export function matchesFilters(
+  message: ParsedMIDIMessage,
+  filters: MIDIMessageFilters
+) {
+  if (isNoteMessage(message)) {
+    if (!isNoteFilters(filters)) return false;
+  }
+  if (isControlChangeMessage(message)) {
+    if (!isControlChangeFilters(filters)) return false;
+  }
+  for (const key in filters) {
+    const filterKey = key as keyof typeof filters; // TS apparently needs help with this
+    if (message[filterKey] !== filters[filterKey]) return false;
+  }
+  return true;
 }
 
-export function useMIDINoteOffStream(
-  input: MIDIInput
-): Observable<NoteMessage> {
-  const messageObs = useMidiInputMessageObservable(input);
-  const obs = useMemo(
-    () =>
-      messageObs.pipe(
-        filter(({ actionName }) => actionName == 'note off'),
-        map(({ data, channel }) => ({
-          note: data[1]!,
-          velocity: data[2]!,
-          channel,
-          type: 'note off' as const,
-        }))
-      ),
-    [input]
-  );
-
-  return obs;
-}
-
-export function useMIDIControlChangeStream(
-  input: MIDIInput
-): Observable<ControlChangeMessage> {
-  const messageObs = useMidiInputMessageObservable(input);
-  const obs = useMemo(
-    () =>
-      messageObs.pipe(
-        filter(({ actionName }) => actionName == 'control change'),
-        map(({ data, channel }) => ({
-          control: data[1]!,
-          value: data[2]!,
-          channel,
-          type: 'control change' as const,
-        }))
-      ),
-    [input]
-  );
-
-  return obs;
-}
-
-type MIDIMessageData = {
-  actionName: ActionNames;
-  leastSig: number;
-  channel: number;
-  data: number[];
-};
-
-function extractData(message: MIDIMessageEvent): MIDIMessageData {
+export function extractData(message: MIDIMessageEvent): ParsedMIDIMessage {
   const data = message.data;
 
-  const action = data[0]! & 0xf0; // Mask channel/least significant bits;
-  const actionName = getActionName(action);
+  const messageTypeNumber = data[0]! & 0xf0; // Mask channel/least significant bits;
+  const type = getMessageType(messageTypeNumber);
 
   const leastSig = data[0]! & 0x0f; // Mask action bits;
   const channel = leastSig + 1;
+
+  if (type === 'note on' || type === 'note off') {
+    const note = data[1]!;
+    const velocity = data[2]!;
+    const noteMessage: NoteMessage = {
+      type,
+      channel,
+      note,
+      velocity,
+    };
+    return noteMessage;
+  }
+
+  if (type === 'control change') {
+    const control = data[1]!;
+    const value = data[2]!;
+    const controlChangeMessage: ControlChangeMessage = {
+      type,
+      channel,
+      control,
+      value,
+    };
+    return controlChangeMessage;
+  }
+
+  // TODO: handle other message types
+
   return {
-    actionName,
-    leastSig,
+    type,
     channel,
-    data: [...data],
   };
 }
 
-function getActionName(action: number) {
+function getMessageType(action: number) {
   switch (action) {
     case 0xb0:
       return 'control change';
@@ -272,5 +218,3 @@ function getActionName(action: number) {
       return 'unknown';
   }
 }
-
-type ActionNames = ReturnType<typeof getActionName>;

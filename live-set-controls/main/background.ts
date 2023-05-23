@@ -25,11 +25,11 @@ if (isProd) {
   });
 
   globalShortcut.register('MediaNextTrack', () => {
-    mainWindow.webContents.send('next-track');
+    mainWindow.webContents.send('next-song');
   });
 
   globalShortcut.register('MediaPreviousTrack', () => {
-    mainWindow.webContents.send('previous-track');
+    mainWindow.webContents.send('previous-song');
   });
 
   if (isProd) {

@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { MIDINoteFilters } from './midi';
+import { MIDIMessageFilters } from './midi/types';
 
 export type MIDIMappings = {
-  nextTrack?: MIDINoteFilters;
-  prevTrack?: MIDINoteFilters;
-  nextSound?: MIDINoteFilters;
-  prevSound?: MIDINoteFilters;
-  play?: MIDINoteFilters;
-  stop?: MIDINoteFilters;
+  nextTrack?: MIDIMessageFilters; // TODO: rename to nextSong
+  prevTrack?: MIDIMessageFilters; // TODO: rename to prevSong
+  nextSound?: MIDIMessageFilters;
+  prevSound?: MIDIMessageFilters;
+  play?: MIDIMessageFilters;
+  stop?: MIDIMessageFilters;
 };
 
 export const midiMappableActions: Array<keyof MIDIMappings> = [
@@ -26,7 +26,7 @@ type SettingsStore = {
   midiMappings: MIDIMappings;
   updateMidiMapping: (
     name: keyof MIDIMappings,
-    filters: MIDINoteFilters
+    filters: MIDIMessageFilters
   ) => void;
 };
 

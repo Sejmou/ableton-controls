@@ -1,34 +1,31 @@
 import classNames from 'classnames';
 import { useState } from 'react';
 import {
-  MIDINoteFilters,
-  useMIDINoteCallback,
+  useMIDIMessageCallback,
   useCurrentMidiInput,
+  matchesFilters,
 } from '~/state/midi';
+import { MIDINoteFilters } from '~/state/midi/types';
 import Input from './Input';
 import { Field, Formik } from 'formik';
-import { NoteMessage } from '~/state/midi/types';
+import { ParsedMIDIMessage } from '~/state/midi/types';
 import Button from './Button';
 
 type Props = {
   className?: string;
 };
-
-const emptyFilters: MIDINoteFilters = {
-  channel: undefined,
-  note: undefined,
-  type: undefined,
-};
-
 const MIDINoteMessageTest = ({ className }: Props) => {
   const input = useCurrentMidiInput();
-  const [filters, setFilters] = useState<MIDINoteFilters>(emptyFilters);
+  const [filters, setFilters] = useState<MIDINoteFilters>({
+    type: 'note on',
+  });
   const [currentColor, setCurrentColor] = useState<string>('black');
-  const onMIDINoteMessage = (message: NoteMessage) => {
-    console.log('message', message);
-    setCurrentColor(generateRandomColorString());
+  const onMIDINoteMessage = (message: ParsedMIDIMessage) => {
+    if (matchesFilters(message, filters)) {
+      setCurrentColor(generateRandomColorString());
+    }
   };
-  useMIDINoteCallback(onMIDINoteMessage, input, filters);
+  useMIDIMessageCallback(onMIDINoteMessage, input);
 
   return (
     <Formik<MIDINoteFilters>
@@ -42,10 +39,10 @@ const MIDINoteMessageTest = ({ className }: Props) => {
           className={classNames('flex flex-col', className)}
           onSubmit={handleSubmit}
         >
-          <h3>Test note message listener</h3>
+          <h3>Test note on message listener</h3>
           <p style={{ color: currentColor }}>
-            The color of this text should change with every note matching the
-            filters below.
+            The color of this text should change with every note on MIDI event
+            matching the filters below.
           </p>
           <h4>Current Note Filters:</h4>
           {JSON.stringify(filters)}

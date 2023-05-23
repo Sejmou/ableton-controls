@@ -2,7 +2,7 @@ import classNames from 'classnames';
 import { useMemo, useState } from 'react';
 import {
   MIDINoteFilters,
-  useMIDINoteCallback,
+  useMIDIMessageCallback,
   useCurrentMidiInput,
 } from '~/state/midi';
 import { NoteMessage } from '~/state/midi/types';
@@ -39,7 +39,7 @@ const MIDINoteMessageTest = ({ className }: Props) => {
     [actionToMap, updateMidiMapping]
   );
 
-  useMIDINoteCallback(onMIDINoteMessage, input);
+  useMIDIMessageCallback(onMIDINoteMessage, input);
 
   return (
     <div className={classNames('w-full', className)}>
