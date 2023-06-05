@@ -13,6 +13,9 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
     track.addListener('mute', async () => {
       tracks$.next(await ableton.song.get('tracks'));
     });
+    track.addListener('current_monitoring_state', async () => {
+      tracks$.next(await ableton.song.get('tracks'));
+    });
   }
   const tracks$ = new BehaviorSubject(initialTracks);
   ableton.song.addListener('tracks', async tracks => {
@@ -24,6 +27,9 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
         tracks$.next(await ableton.song.get('tracks'));
       });
       track.addListener('mute', async () => {
+        tracks$.next(await ableton.song.get('tracks'));
+      });
+      track.addListener('current_monitoring_state', async () => {
         tracks$.next(await ableton.song.get('tracks'));
       });
     }
@@ -44,6 +50,13 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
               return track.get('arm');
             }),
             isMuted: track.get('mute'),
+            monitoringState: track
+              .get('can_be_armed')
+              .then(armable =>
+                armable
+                  ? track.get('current_monitoring_state')
+                  : Promise.resolve(-1)
+              ),
           })
         )
       )
@@ -58,9 +71,13 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
           abletonJsTrack,
           isArmed,
           isMuted,
+          monitoringState,
         } = t;
         const mute = () => abletonJsTrack.set('mute', true);
         const unmute = () => abletonJsTrack.set('mute', false);
+
+        if (monitoringState !== -1 && (name == 'Lead' || name == 'Rhythm'))
+          console.log(name, monitoringState);
 
         if (canBeArmed) {
           const type = 'midiOrAudio' as const; // I don't fully understand why this is necessary, but it is
@@ -73,6 +90,14 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
             isArmed,
             arm: () => abletonJsTrack.set('arm', true),
             disarm: () => abletonJsTrack.set('arm', false),
+            monitorMode: monitoringStateToMonitorMode(
+              monitoringState
+            ) as MonitorMode,
+            setMonitorMode: (mode: 'in' | 'auto' | 'off') =>
+              abletonJsTrack.set(
+                'current_monitoring_state',
+                monitorModeToMonitoringState(mode)
+              ),
             mute,
             unmute,
             isMuted,
@@ -140,4 +165,34 @@ export type MIDIOrAudioTrack = TrackBase & {
   isArmed: boolean;
   arm: () => Promise<null>;
   disarm: () => Promise<null>;
+  monitorMode: MonitorMode;
+  setMonitorMode: (mode: MonitorMode) => Promise<null>;
+};
+
+type MonitorMode = 'auto' | 'in' | 'off';
+
+const monitoringStateToMonitorMode = (state: number) => {
+  switch (state) {
+    case 0:
+      return 'in';
+    case 1:
+      return 'auto';
+    case 2:
+      return 'off';
+    default:
+      return 'off';
+  }
+};
+
+const monitorModeToMonitoringState = (mode: 'auto' | 'in' | 'off') => {
+  switch (mode) {
+    case 'off':
+      return 2;
+    case 'in':
+      return 0;
+    case 'auto':
+      return 1;
+    default:
+      return 2;
+  }
 };

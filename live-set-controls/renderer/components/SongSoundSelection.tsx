@@ -57,12 +57,41 @@ const SoundForSong = ({ className, trackForSound }: SoundProps) => {
     <div
       className={classNames(
         'flex flex-col p-4 items-center cursor-pointer',
-        trackForSound.isArmed && 'bg-red-500',
         className
       )}
-      onClick={toggleArmed}
     >
       <h2>{trackForSound.name}</h2>
+      <div className="flex gap-2 justify-between">
+        <div
+          className={classNames(trackForSound.isArmed && 'bg-red-500')}
+          onClick={toggleArmed}
+        >
+          {!trackForSound.isArmed && 'not'} armed
+        </div>
+        <div>
+          {monitorModes.map(mode => (
+            <div
+              className={classNames(
+                'w-full',
+                trackForSound.monitorMode == mode && monitorModeColors[mode]
+              )}
+              onClick={() => {
+                trackForSound.setMonitorMode(mode);
+              }}
+            >
+              {mode}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
+};
+
+type MonitorMode = MIDIOrAudioTrack['monitorMode'];
+const monitorModes: readonly MonitorMode[] = ['in', 'auto', 'off'] as const;
+const monitorModeColors: Record<MonitorMode, string> = {
+  in: 'bg-blue-500',
+  auto: 'bg-yellow-500',
+  off: 'bg-yellow-500',
 };
