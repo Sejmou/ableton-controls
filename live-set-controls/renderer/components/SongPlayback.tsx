@@ -11,7 +11,7 @@ type Props = {
 };
 
 const SongPlayback = ({ className }: Props) => {
-  const { isPlaying, start, stop, resume } = usePlayback();
+  const { isPlaying, start, stop, resume, record } = usePlayback();
 
   const handlePlayPause = useMemo(() => {
     return async () => {
@@ -37,6 +37,7 @@ const SongPlayback = ({ className }: Props) => {
       <h3>Playback</h3>
       {isPlaying ? 'Playing' : 'Stopped'}
       <Button onClick={handlePlayPause} label={isPlaying ? 'Stop' : 'Play'} />
+      <Button onClick={record} label="Record" />
     </div>
   );
 };

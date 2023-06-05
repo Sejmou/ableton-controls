@@ -29,6 +29,7 @@ export function usePlayback() {
       resume: () => ableton.song.continuePlaying(),
       start: () => ableton.song.startPlaying(),
       stop: () => ableton.song.stopPlaying(),
+      record: () => ableton.song.set('record_mode', 1),
       isPlaying,
     }),
     [isPlaying]

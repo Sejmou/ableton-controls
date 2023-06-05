@@ -15,9 +15,11 @@ import { MIDIMappings, useSettingsStore } from '~/state/settings-store';
 import {
   useJumpToNextSong,
   useJumpToPreviousSong,
+  usePlayback,
   useSwitchToNextSound,
   useSwitchToPreviousSound,
 } from '../live-set';
+type MIDIInput = WebMidi.MIDIInput;
 
 const midiInputsSubject = new BehaviorSubject<MIDIInput[]>([]);
 
@@ -42,11 +44,15 @@ export function useMidiMappings() {
   const switchToPreviousSound = useSwitchToPreviousSound();
   const jumpToNextSong = useJumpToNextSong();
   const jumpToPreviousSong = useJumpToPreviousSong();
+  const { start, stop, record } = usePlayback();
 
   useMIDIMapping('nextSound', switchToNextSound);
   useMIDIMapping('prevSound', switchToPreviousSound);
   useMIDIMapping('nextTrack', jumpToNextSong);
   useMIDIMapping('prevTrack', jumpToPreviousSong);
+  useMIDIMapping('start', start);
+  useMIDIMapping('stop', stop);
+  useMIDIMapping('record', record);
 }
 
 export function useMIDIMapping(

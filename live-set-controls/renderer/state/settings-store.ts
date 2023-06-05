@@ -7,8 +7,9 @@ export type MIDIMappings = {
   prevTrack?: MIDIMessageFilters; // TODO: rename to prevSong
   nextSound?: MIDIMessageFilters;
   prevSound?: MIDIMessageFilters;
-  play?: MIDIMessageFilters;
+  start?: MIDIMessageFilters;
   stop?: MIDIMessageFilters;
+  record?: MIDIMessageFilters;
 };
 
 export const midiMappableActions: Array<keyof MIDIMappings> = [
@@ -16,8 +17,9 @@ export const midiMappableActions: Array<keyof MIDIMappings> = [
   'prevTrack',
   'nextSound',
   'prevSound',
-  'play',
+  'start',
   'stop',
+  'record',
 ];
 
 type SettingsStore = {

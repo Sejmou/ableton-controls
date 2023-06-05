@@ -8,7 +8,6 @@ import {
   isNoteMessage,
 } from '~/state/midi/types';
 import { useMIDIMessageCallback, useCurrentMidiInput } from '~/state/midi';
-import { NoteMessage } from '~/state/midi/types';
 import Button from './Button';
 import {
   useSettingsStore,
