@@ -303,9 +303,23 @@ async function init() {
       const otherSoundGroups = soundGroups.children.filter(
         t => t.name !== soundGroupName && t.type === 'group'
       );
+      // mute all other sound groups so that they don't play when we switch to this one
+      // also, unarm all tracks in other sound groups so that they don't record
       otherSoundGroups.forEach(sg => {
         sg.mute();
-      }); // mute all other sound groups so that they don't play when we switch to this one
+        if (sg.type !== 'group') {
+          console.warn(
+            'expected sound group to be a group but it was not:',
+            sg.name
+          );
+          return;
+        }
+        sg.children.forEach(t => {
+          if (t.type === 'midiOrAudio') {
+            t.disarm();
+          }
+        });
+      });
       soundGroup.unmute();
 
       const tracksForCurrentSong = soundGroup.children.filter(
