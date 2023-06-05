@@ -7,6 +7,7 @@ import { useSettingsStore } from '~/state/settings-store';
 type Props = {
   className?: string;
 };
+type MIDIInput = WebMidi.MIDIInput;
 
 const MIDIInputSelect = ({ className }: Props) => {
   const inputs = useMidiInputs();

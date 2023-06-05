@@ -1,7 +1,9 @@
 import classNames from 'classnames';
+import { Label, Select } from 'flowbite-react';
 import { useEffect } from 'react';
 import { useSoundsForCurrentSong, useCurrentSong } from '~/state/live-set';
 import { MIDIOrAudioTrack } from '~/state/live-set/tracks';
+import { useSettingsStore } from '~/state/settings-store';
 
 type Props = {
   className?: string;
@@ -34,6 +36,7 @@ const SongSoundSelection = ({ className }: Props) => {
           />
         ))}
       </div>
+      <SongSoundMonitorModeSelect />
     </div>
   );
 };
@@ -54,16 +57,14 @@ const SoundForSong = ({ className, trackForSound }: SoundProps) => {
     }
   };
   return (
-    <div
-      className={classNames(
-        'flex flex-col p-4 items-center cursor-pointer',
-        className
-      )}
-    >
+    <div className={classNames('flex flex-col p-4 items-center', className)}>
       <h2>{trackForSound.name}</h2>
       <div className="flex gap-2 justify-between">
         <div
-          className={classNames(trackForSound.isArmed && 'bg-red-500')}
+          className={classNames(
+            'cursor-pointer',
+            trackForSound.isArmed && 'bg-red-500'
+          )}
           onClick={toggleArmed}
         >
           {!trackForSound.isArmed && 'not'} armed
@@ -72,7 +73,7 @@ const SoundForSong = ({ className, trackForSound }: SoundProps) => {
           {monitorModes.map(mode => (
             <div
               className={classNames(
-                'w-full',
+                'w-full cursor-pointer',
                 trackForSound.monitorMode == mode && monitorModeColors[mode]
               )}
               onClick={() => {
@@ -83,6 +84,50 @@ const SoundForSong = ({ className, trackForSound }: SoundProps) => {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  );
+};
+
+type MonitorModeSelectProps = {
+  className?: string;
+};
+
+const SongSoundMonitorModeSelect = ({ className }: MonitorModeSelectProps) => {
+  const monitorMode = useSettingsStore(state => state.songSoundsMonitorMode);
+  const setMonitorMode = useSettingsStore(
+    state => state.setSongSoundsMonitorMode
+  );
+
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setMonitorMode(e.target.value as 'in' | 'auto' | undefined);
+  };
+
+  return (
+    <div className={className}>
+      <div className="w-full" id="select">
+        <div className="mb-2 block">
+          <Label
+            htmlFor="song-sounds-monitor-mode"
+            value="Default monitor mode for song sounds:"
+          />
+        </div>
+        <Select
+          id="midi-inputs"
+          className="border rounded p-2"
+          required={false}
+          onChange={handleSelectChange}
+          value={monitorMode}
+        >
+          <option className="border-0" value="">
+            {'(Keep settings from Live Set)'}
+          </option>
+          {['in', 'auto'].map(mode => (
+            <option className="border-0" key={mode} value={mode}>
+              {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            </option>
+          ))}
+        </Select>
       </div>
     </div>
   );

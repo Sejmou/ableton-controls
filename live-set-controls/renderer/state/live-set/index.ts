@@ -8,6 +8,7 @@ import {
 } from './tracks';
 import { useObservableState } from 'observable-hooks';
 import { useEffect, useMemo } from 'react';
+import { useSettingsStore } from '../settings-store';
 
 const ableton = new Ableton({ logger: console }); // Log all messages to the console
 // TODO: do I even need to use Subjects here?
@@ -45,7 +46,31 @@ export function useCurrentSong() {
 
 export function useSoundsForCurrentSong() {
   const tracks = useObservableState(currentSongSounds$);
+  const songSoundsMonitorMode = useSettingsStore(
+    state => state.songSoundsMonitorMode
+  );
+  const currentSong = useObservableState(currentSong$);
+  useEffect(() => {
+    if (songSoundsMonitorMode) {
+      // set monitor mode for all tracks to current setting (in or auto)
+      tracks.forEach(track => {
+        track.setMonitorMode(songSoundsMonitorMode);
+      });
+    }
+  }, [songSoundsMonitorMode, currentSong]);
+
   return tracks;
+}
+
+export function useToggleMonitorModeForSounds() {
+  const tracks = useObservableState(currentSongSounds$);
+  return () => {
+    const currentMonitorMode = tracks[0]!.monitorMode; // simplifying assumption: all tracks have same monitor mode and monitor mode is either 'in' or 'auto'
+    const newMonitorMode = currentMonitorMode === 'in' ? 'auto' : 'in';
+    tracks.forEach(track => {
+      track.setMonitorMode(newMonitorMode);
+    });
+  };
 }
 
 export function useSwitchToNextSound() {

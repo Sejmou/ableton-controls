@@ -30,6 +30,8 @@ type SettingsStore = {
     actionName: keyof MIDIMappings,
     mapping?: MIDIMessageFilters
   ) => void;
+  songSoundsMonitorMode?: 'auto' | 'in'; // defines the monitor mode of the sounds for the current song that is played in the Live set
+  setSongSoundsMonitorMode: (mode: 'auto' | 'in' | undefined) => void;
 };
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -52,6 +54,10 @@ export const useSettingsStore = create<SettingsStore>()(
               midiMappings,
             };
           }),
+        setSongSoundsMonitorMode: mode =>
+          set(() => ({
+            songSoundsMonitorMode: mode,
+          })),
       }),
 
       {
