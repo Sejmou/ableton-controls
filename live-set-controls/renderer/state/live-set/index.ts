@@ -213,6 +213,8 @@ async function setLoopEndToTime(time: number) {
 
 async function init() {
   let clientStarted = false;
+  // wait for a second; for some reason this is required, otherwise we get a adress already in use error
+  await new Promise(resolve => setTimeout(resolve, 1000));
   while (!clientStarted) {
     try {
       await ableton.start();

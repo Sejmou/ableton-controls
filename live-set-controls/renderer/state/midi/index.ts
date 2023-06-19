@@ -20,6 +20,7 @@ import {
   useSwitchToPreviousSound,
 } from '../live-set';
 type MIDIInput = WebMidi.MIDIInput;
+type MIDIMessageEvent = WebMidi.MIDIMessageEvent;
 
 const midiInputsSubject = new BehaviorSubject<MIDIInput[]>([]);
 
