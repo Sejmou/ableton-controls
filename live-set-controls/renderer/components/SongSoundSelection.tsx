@@ -49,6 +49,14 @@ type SoundProps = {
 };
 
 const SoundForSong = ({ className, trackForSound }: SoundProps) => {
+  const toggleMute = () => {
+    if (trackForSound.isMuted) {
+      trackForSound.unmute();
+    } else {
+      trackForSound.mute();
+    }
+  };
+
   const toggleArmed = () => {
     if (trackForSound.isArmed) {
       trackForSound.disarm();
@@ -58,7 +66,12 @@ const SoundForSong = ({ className, trackForSound }: SoundProps) => {
   };
   return (
     <div className={classNames('flex flex-col p-4 items-center', className)}>
-      <h2>{trackForSound.name}</h2>
+      <h2
+        onClick={toggleMute}
+        className={classNames(trackForSound.isMuted && 'line-through')}
+      >
+        {trackForSound.name}
+      </h2>
       <div className="flex gap-2 justify-between">
         <div
           className={classNames(

@@ -76,9 +76,6 @@ export async function createTracksAndTrackGroups$(ableton: Ableton) {
         const mute = () => abletonJsTrack.set('mute', true);
         const unmute = () => abletonJsTrack.set('mute', false);
 
-        if (monitoringState !== -1 && (name == 'Lead' || name == 'Rhythm'))
-          console.log(name, monitoringState);
-
         if (canBeArmed) {
           const type = 'midiOrAudio' as const; // I don't fully understand why this is necessary, but it is
           return {
